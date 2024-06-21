@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "sb-partners",
+    "slug": "sb-partners",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+       "jsEngine": "hermes",
+       "config": {
+        "googleMapsApiKey": "AIzaSyBEgcdRIgr7znHQLhi3WKlJMIsjsoD5xnA"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "versionCode":3,
+      "package": "com.swastibharat.partners",
+       "jsEngine": "hermes",
+       "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBEgcdRIgr7znHQLhi3WKlJMIsjsoD5xnA"
+        }
+      }
+
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "12ab3263-1fec-4e7b-af8a-5ecb67150b50"
+      }
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}
