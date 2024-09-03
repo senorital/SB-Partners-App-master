@@ -18,6 +18,7 @@ import Header from "../header/Header";
 import BookingTab from "./BookingTab";
 import HomeTutorBooking from "./HomeTutorBooking";
 import TherapistBooking from "./TherapistBooking";
+import { COLORS } from "../constants";
 
 
 const MainBooking = ({ route, navigation }) => {
@@ -41,7 +42,7 @@ const MainBooking = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" />
+      <StatusBar backgroundColor={COLORS.primary} style="light" />
       <View style={{ paddingTop: 20 }}>
         <Header title={"Booking"} icon={require("../../assets/back.png")} />
       </View>

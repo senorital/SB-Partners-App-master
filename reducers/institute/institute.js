@@ -3,6 +3,7 @@ import {
   GET_COURSE_DURATION_TYPE,
   GET_COURSE_TYPE,
   GET_INSTITUTE,
+  GET_UNIVERSITY, // Import the new constant
 } from "../../constants/actionTypes";
 
 const initialState = {
@@ -10,6 +11,7 @@ const initialState = {
   courseDuration: [],
   courseDurationType: [],
   institute: [],
+  university: [], // Added university to initialState
   state: "idle",
   error: null,
   success: null,
@@ -27,7 +29,6 @@ export const instituteReducer = (state = initialState, action) => {
         ...state,
         courseDuration: action.payload,
       };
-
     case GET_INSTITUTE:
       return {
         ...state,
@@ -38,7 +39,11 @@ export const instituteReducer = (state = initialState, action) => {
         ...state,
         courseDurationType: action.payload,
       };
-
+    case GET_UNIVERSITY: // Added case for GET_UNIVERSITY
+      return {
+        ...state,
+        university: action.payload,
+      };
     default:
       return state;
   }

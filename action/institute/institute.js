@@ -1,5 +1,5 @@
 import * as api from "../../api";
-import { GET_COURSE_TYPE,GET_COURSE_DURATION,GET_INSTITUTE,GET_COURSE_DURATION_TYPE } from "../../constants/actionTypes";
+import { GET_COURSE_TYPE,GET_COURSE_DURATION,GET_INSTITUTE,GET_COURSE_DURATION_TYPE, GET_UNIVERSITY } from "../../constants/actionTypes";
 
 
 
@@ -26,9 +26,9 @@ export const getCourseType = () => async (dispatch) => {
     }
   };
 
-  export const getInstitute = () => async (dispatch) => {  
+  export const getInstitute = (university_name) => async (dispatch) => {  
     try {
-      const { data } = await api.getInstitute();
+      const { data } = await api.getInstitute(university_name);
       dispatch({ type: GET_INSTITUTE, payload: data });
       return data;
     } catch (error) {
@@ -37,6 +37,16 @@ export const getCourseType = () => async (dispatch) => {
     }
   };
 
+  export const getUniversity = () => async (dispatch) => {  
+    try {
+      const { data } = await api.getUniversity();
+      dispatch({ type: GET_UNIVERSITY, payload: data });
+      return data;
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  };
   export const getCourseDurationType = (type) => async (dispatch) => {  
     try {
       const { data } = await api.getCourseDurationType(type);

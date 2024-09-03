@@ -15,7 +15,7 @@ import {
 import Header from "../header/Header";
 import Accordion from "../accordion/Accordion";
 import { useNavigation } from "@react-navigation/native";
-
+import { COLORS } from "../constants";
 
 const Help = () => {
   const navigation = useNavigation();
@@ -37,7 +37,7 @@ const Help = () => {
   }, [navigation]);
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="#fff" />
+      <StatusBar backgroundColor={COLORS.primary} style="light" />
       <View style={{ paddingTop: 20 }}>
         <Header
           title={"Help and Support"}
@@ -81,7 +81,7 @@ const Help = () => {
           answer="Users will search for services based on their preferences and book directly through the app. You will receive notifications for new bookings, which you can accept or decline."
         />
 
-<Accordion
+      <Accordion
           title="How are payments handled?"
           answer="Payments are processed securely through the app. Users pay at the time of booking, and funds are transferred to your account after the service is completed."
         />
@@ -102,7 +102,7 @@ const Help = () => {
           answer="Yes, you can list multiple services and locations. Update your profile to include all the services you offer and specify different locations if applicable."
         />
 
-<Accordion
+       <Accordion
           title="What are the requirements for listing a yoga studio?"
           answer="To list a yoga studio, provide the studio’s name, location, class schedule, types of classes offered, pricing, and images of the studio. Ensure all information is accurate and up-to-date."
         />
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     // paddingHorizontal: 20,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background
   },
   inputContainer: {
     flexDirection: "row",

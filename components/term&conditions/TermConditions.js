@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import Header from "../header/Header";
 import ContentSection from "./CustomSection";
+import { COLORS } from "../constants";
 
 const TermConditions = ({ navigation }) => {
   useEffect(() => {
@@ -29,7 +30,7 @@ const TermConditions = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="#fff" />
+      <StatusBar backgroundColor={COLORS.primary} style="light" />
       <View style={{ paddingTop: 20 }}>
         <Header
           title="Terms & Conditions"
@@ -139,8 +140,10 @@ const TermConditions = ({ navigation }) => {
         <Text
           style={{
             fontFamily: "PoppinsSemiBold",
-            fontSize: 20,
-            color: "#5F33E1",
+            fontSize: 17,
+            marginVertical:10,
+            color: COLORS.primary,
+            textDecorationLine:'underline'
           }}
         >
           Cancellation and Refund Policy
@@ -190,8 +193,10 @@ const TermConditions = ({ navigation }) => {
         <Text
           style={{
             fontFamily: "PoppinsSemiBold",
-            fontSize: 20,
-            color: "#5F33E1",
+            fontSize: 17,
+            marginVertical:10,
+            color: COLORS.primary,
+            textDecorationLine:'underline'
           }}
         >
           Booking Policy
@@ -239,8 +244,10 @@ const TermConditions = ({ navigation }) => {
         <Text
           style={{
             fontFamily: "PoppinsSemiBold",
-            fontSize: 20,
-            color: "#5F33E1",
+            fontSize: 17,
+            marginVertical:10,
+            color: COLORS.primary,
+            textDecorationLine:'underline'
           }}
         >
           Review and Rating Policy
@@ -290,8 +297,10 @@ const TermConditions = ({ navigation }) => {
         <Text
           style={{
             fontFamily: "PoppinsSemiBold",
-            fontSize: 20,
-            color: "#5F33E1",
+            fontSize: 17,
+            marginVertical:10,
+            color: COLORS.primary,
+            textDecorationLine:'underline'
           }}
         >
           Service Provider Policy
@@ -356,8 +365,10 @@ const TermConditions = ({ navigation }) => {
         <Text
           style={{
             fontFamily: "PoppinsSemiBold",
-            fontSize: 20,
-            color: "#5F33E1",
+            fontSize: 17,
+            marginVertical:10,
+            color: COLORS.primary,
+            textDecorationLine:'underline'
           }}
         >
           Community Guidelines
@@ -415,8 +426,10 @@ const TermConditions = ({ navigation }) => {
         <Text
           style={{
             fontFamily: "PoppinsSemiBold",
-            fontSize: 20,
-            color: "#5F33E1",
+            fontSize: 17,
+            marginVertical:10,
+            color: COLORS.primary,
+            textDecorationLine:'underline'
           }}
         >
           Safety and Security Policy
@@ -473,8 +486,10 @@ const TermConditions = ({ navigation }) => {
         <Text
           style={{
             fontFamily: "PoppinsSemiBold",
-            fontSize: 20,
-            color: "#5F33E1",
+            fontSize: 17,
+            marginVertical:10,
+            color: COLORS.primary,
+            textDecorationLine:'underline'
           }}
         >
           Intellectual Property Policy
@@ -529,8 +544,10 @@ const TermConditions = ({ navigation }) => {
         <Text
           style={{
             fontFamily: "PoppinsSemiBold",
-            fontSize: 20,
-            color: "#5F33E1",
+            fontSize: 17,
+            marginVertical:10,
+            color: COLORS.primary,
+            textDecorationLine:'underline'
           }}
         >
           Marketing and Communication Policy
@@ -582,8 +599,10 @@ const TermConditions = ({ navigation }) => {
         <Text
           style={{
             fontFamily: "PoppinsSemiBold",
-            fontSize: 20,
-            color: "#5F33E1",
+            fontSize: 17,
+            marginVertical:10,
+            color: COLORS.primary,
+            textDecorationLine:'underline'
           }}
         >
           Dispute Resolution Policy
@@ -637,24 +656,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   text: {
-    fontSize: 14,
-    fontFamily: "Poppins",
-    color: "gray",
+    fontSize: 13,
+    fontFamily: "Poppins_Light",
+    color: COLORS.black,
     textAlign: "justify",
   },
   boldText: {
     fontSize: 16,
     fontFamily: "PoppinsSemiBold",
-    color: "#5F33E1",
+    color: COLORS.primary,
   },
   row: {
     flexDirection: "row",
   },
   dot: {
-    width: 8,
-    height: 8,
+    width: 6,
+    height: 6,
     borderRadius: 5,
-    backgroundColor: "#5F33E1",
+    backgroundColor: COLORS.primary,
     marginVertical: 5,
   },
 });

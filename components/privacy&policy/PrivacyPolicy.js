@@ -8,6 +8,7 @@ import {
   BackHandler,
 } from "react-native";
 import Header from "../header/Header";
+import { COLORS, icons } from "../constants";
 
 const PrivacyPolicy = ({ navigation }) => {
   useEffect(() => {
@@ -28,11 +29,11 @@ const PrivacyPolicy = ({ navigation }) => {
   }, [navigation]);
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="#fff" />
+      <StatusBar backgroundColor={COLORS.primary} style="light" />
       <View style={{ paddingTop: 20 }}>
         <Header
           title={"Privacy Policy"}
-          icon={require("../../assets/back.png")}
+          icon={icons.back}
         />
       </View>
       <ScrollView
@@ -42,24 +43,17 @@ const PrivacyPolicy = ({ navigation }) => {
           <View>
             <Text
               style={{
-                fontSize: 16,
+                fontSize: 15,
                 fontFamily: "PoppinsSemiBold",
-
-                marginVertical: 10,
-                color: "#5F33E1",
+                color: COLORS.primary,
+                
               }}
             >
               Introduction
             </Text>
             <Text
-              style={{
-                fontSize: 14,
-                fontFamily: "Poppins",
-                color: "gray",
-
-                textAlign: "justify",
-              }}
-            >
+                  style={styles.text}
+                >
               We are committed to protecting your privacy. This Privacy Policy
               explains how we collect, use, disclose, and safeguard your
               information when you use our application.
@@ -69,11 +63,11 @@ const PrivacyPolicy = ({ navigation }) => {
           <View style={{ paddingVertical: 20 }}>
             <Text
               style={{
-                fontSize: 16,
                 fontFamily: "PoppinsSemiBold",
-
-                marginVetical: 10,
-                color: "#5F33E1",
+            fontSize: 17,
+            marginVertical:10,
+            color: COLORS.primary,
+            textDecorationLine:'underline'
               }}
             >
               Data Collection
@@ -83,23 +77,17 @@ const PrivacyPolicy = ({ navigation }) => {
               <View style={styles.dot} />
               <Text
                 style={{
-                  fontSize: 16,
+                  fontSize: 15,
                   fontFamily: "PoppinsSemiBold",
-                  color: "#5F33E1",
+                  color: COLORS.primary,
                 }}
               >
                 &nbsp; Personal Information :
               </Text>
             </View>
             <Text
-              style={{
-                fontSize: 14,
-                fontFamily: "Poppins",
-                color: "gray",
-
-                textAlign: "justify",
-              }}
-            >
+                  style={styles.text}
+                >
               Name, email address, phone number, address, payment information,
               etc.
             </Text>
@@ -108,34 +96,28 @@ const PrivacyPolicy = ({ navigation }) => {
               <View style={styles.dot} />
               <Text
                 style={{
-                  fontSize: 16,
+                  fontSize: 15,
                   fontFamily: "PoppinsSemiBold",
-                  color: "#5F33E1",
+                  color: COLORS.primary,
                 }}
               >
                 &nbsp; Usage Data :
               </Text>
             </View>
             <Text
-              style={{
-                fontSize: 14,
-                fontFamily: "Poppins",
-                color: "gray",
-
-                textAlign: "justify",
-              }}
-            >
+                  style={styles.text}
+                >
               Information on how the app is accessed and used, including device
               information, IP address, browser type, etc.
             </Text>
-            <View style={{ paddingVertical: 20 }}>
+            <View style={{ paddingVertical: 10 }}>
               <Text
                 style={{
-                  fontSize: 16,
                   fontFamily: "PoppinsSemiBold",
-
-                  marginVetical: 10,
-                  color: "#5F33E1",
+            fontSize: 17,
+            marginVertical:10,
+            color: COLORS.primary,
+            textDecorationLine:'underline'
                 }}
               >
                 Data Usage
@@ -143,13 +125,7 @@ const PrivacyPolicy = ({ navigation }) => {
               <View style={{ flexDirection: "row" }}>
                 <View style={styles.dot} />
                 <Text
-                  style={{
-                    fontSize: 14,
-                    fontFamily: "Poppins",
-                    color: "gray",
-
-                    textAlign: "justify",
-                  }}
+                  style={styles.text}
                 >
                   &nbsp; To provide and maintain our services.
                 </Text>
@@ -157,13 +133,7 @@ const PrivacyPolicy = ({ navigation }) => {
               <View style={{ flexDirection: "row" }}>
                 <View style={styles.dot} />
                 <Text
-                  style={{
-                    fontSize: 14,
-                    fontFamily: "Poppins",
-                    color: "gray",
-
-                    textAlign: "justify",
-                  }}
+                  style={styles.text}
                 >
                   &nbsp; To notify you about changes to our services.
                 </Text>
@@ -171,13 +141,7 @@ const PrivacyPolicy = ({ navigation }) => {
               <View style={{ flexDirection: "row" }}>
                 <View style={styles.dot} />
                 <Text
-                  style={{
-                    fontSize: 14,
-                    fontFamily: "Poppins",
-                    color: "gray",
-
-                    textAlign: "justify",
-                  }}
+                  style={styles.text}
                 >
                   &nbsp; To allow you to participate in interactive features.
                 </Text>
@@ -185,13 +149,7 @@ const PrivacyPolicy = ({ navigation }) => {
               <View style={{ flexDirection: "row" }}>
                 <View style={styles.dot} />
                 <Text
-                  style={{
-                    fontSize: 14,
-                    fontFamily: "Poppins",
-                    color: "gray",
-
-                    textAlign: "justify",
-                  }}
+                  style={styles.text}
                 >
                   &nbsp; To provide customer support.
                 </Text>
@@ -199,13 +157,7 @@ const PrivacyPolicy = ({ navigation }) => {
               <View style={{ flexDirection: "row" }}>
                 <View style={styles.dot} />
                 <Text
-                  style={{
-                    fontSize: 14,
-                    fontFamily: "Poppins",
-                    color: "gray",
-
-                    textAlign: "justify",
-                  }}
+                  style={styles.text}
                 >
                   &nbsp; To gather analysis for service improvement.
                 </Text>
@@ -215,10 +167,11 @@ const PrivacyPolicy = ({ navigation }) => {
             <View>
               <Text
                 style={{
-                  fontSize: 16,
                   fontFamily: "PoppinsSemiBold",
-                  marginVetical: 10,
-                  color: "#5F33E1",
+                  fontSize: 17,
+                  marginVertical:10,
+                  color: COLORS.primary,
+                  textDecorationLine:'underline'
                 }}
               >
                 Data Protection
@@ -226,13 +179,7 @@ const PrivacyPolicy = ({ navigation }) => {
               <View style={{ flexDirection: "row" }}>
                 <View style={styles.dot} />
                 <Text
-                  style={{
-                    fontSize: 14,
-                    fontFamily: "Poppins",
-                    color: "gray",
-
-                    textAlign: "justify",
-                  }}
+                  style={styles.text}
                 >
                   &nbsp; We implement security measures to protect your
                   information.
@@ -241,13 +188,7 @@ const PrivacyPolicy = ({ navigation }) => {
               <View style={{ flexDirection: "row" }}>
                 <View style={styles.dot} />
                 <Text
-                  style={{
-                    fontSize: 14,
-                    fontFamily: "Poppins",
-                    color: "gray",
-
-                    textAlign: "justify",
-                  }}
+                  style={styles.text}
                 >
                   &nbsp; Data encryption and secure server storage.
                 </Text>
@@ -255,13 +196,7 @@ const PrivacyPolicy = ({ navigation }) => {
               <View style={{ flexDirection: "row" }}>
                 <View style={styles.dot} />
                 <Text
-                  style={{
-                    fontSize: 14,
-                    fontFamily: "Poppins",
-                    color: "gray",
-
-                    textAlign: "justify",
-                  }}
+                  style={styles.text}
                 >
                   &nbsp; Regular security audits and updates.
                 </Text>
@@ -270,11 +205,11 @@ const PrivacyPolicy = ({ navigation }) => {
             <View style={{ paddingVertical: 20 }}>
               <Text
                 style={{
-                  fontSize: 16,
                   fontFamily: "PoppinsSemiBold",
-
-                  marginVetical: 10,
-                  color: "#5F33E1",
+            fontSize: 17,
+            marginVertical:10,
+            color: COLORS.primary,
+            textDecorationLine:'underline'
                 }}
               >
                 User Rights
@@ -282,11 +217,7 @@ const PrivacyPolicy = ({ navigation }) => {
               <View style={{ flexDirection: "row" }}>
                 <View style={styles.dot} />
                 <Text
-                  style={{
-                    fontSize: 14,
-                    fontFamily: "Poppins",
-                    color: "gray",
-                  }}
+                  style={styles.text}
                 >
                   &nbsp; Access: You can request access to your personal
                   information.
@@ -295,13 +226,7 @@ const PrivacyPolicy = ({ navigation }) => {
               <View style={{ flexDirection: "row" }}>
                 <View style={styles.dot} />
                 <Text
-                  style={{
-                    fontSize: 14,
-                    fontFamily: "Poppins",
-                    color: "gray",
-
-                    textAlign: "justify",
-                  }}
+                  style={styles.text}
                 >
                   &nbsp; Correction: You can request corrections to any
                   inaccurate information.
@@ -310,12 +235,7 @@ const PrivacyPolicy = ({ navigation }) => {
               <View style={{ flexDirection: "row" }}>
                 <View style={styles.dot} />
                 <Text
-                  style={{
-                    fontSize: 14,
-                    fontFamily: "Poppins",
-                    color: "gray",
-                    textAlign: "justify",
-                  }}
+                  style={styles.text}
                 >
                   &nbsp; Deletion: You can request the deletion of your personal
                   information.
@@ -335,13 +255,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   dot: {
-    width: 8,
-    height: 8,
+    width: 5,
+    height: 5,
     borderRadius: 5,
-    backgroundColor: "#5F33E1",
-    marginVertical: 5,
+    backgroundColor: COLORS.primary,
+    marginVertical: 8,
     // marginLeft: 20,
   },
+  text :{
+    fontSize: 13,
+    fontFamily: "Poppins_Light",
+    color: COLORS.black,
+    textAlign: "justify",
+  }
 });
 
 export default PrivacyPolicy;

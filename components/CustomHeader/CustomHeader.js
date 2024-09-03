@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { COLORS } from "../constants";
 
 const CustomHeader = ({ title, icon, buttonText, onPress, destination }) => {
   const navigation = useNavigation();
@@ -36,14 +37,13 @@ export default CustomHeader;
 
 const styles = StyleSheet.create({
   header: {
-    height: 70,
-    width: "100%",
+    paddingHorizontal: 15,
+    marginVertical:10,
     flexDirection: "row",
-    backgroundColor: "#fff",
+    // backgroundColor: "#fff",
     elevation: 0.1,
     alignItems: "center",
-    paddingLeft: 20,
-    paddingTop: 15,
+    paddingLeft: 10,
   },
   back: {
     width: 20,
@@ -54,17 +54,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "500",
     fontFamily:'PoppinsSemiBold',
-    width: 190,
+    // width: 190,
+    flex:1,
+    flexDirection:'row'
   },
   btnContainer: {
     width: 90,
     height: 35,
     borderRadius: 10,
-    backgroundColor: "#5F33E1",
+    backgroundColor: COLORS.primary,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 10,
-    marginHorizontal:27
+    marginBottom:10,
+    // marginHorizontal:10
   },
   btn: {
     fontSize: 14,

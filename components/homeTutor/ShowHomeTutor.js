@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect ,useCallback} from "react";
 import {
   Text,
   View,
@@ -10,7 +10,7 @@ import {
   FlatList,
   ActivityIndicator,
   BackHandler,
-  Alert,
+  Alert,ToastAndroid
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -22,31 +22,58 @@ import {
   deleteTutorSlot,
   getTutorById,
 } from "../../action/homeTutor/homeTutor";
-
+import { COLORS, icons, SIZES } from "../constants";
+import { WINDOW_WIDTH } from "@gorhom/bottom-sheet";
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useFocusEffect } from '@react-navigation/native';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from "react-native-responsive-screen";
 const ShowHomeTutor = ({ navigation, route }) => {
-  const { id } = route.params;
+  const { id,status } = route.params;
   const dispatch = useDispatch();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState([]);
+  const [languages, setLanguages] = useState([]);
+  const [specializations, setSpecializations] = useState([]);
+  const [yogaFor, setYogaFor] = useState([]);
+  const [totalImages, setTotalImages] = useState(0); // Add this line
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      console.log("TutorId :" + id);
+      const res = await dispatch(getTutorById(id));
+      console.log(res);
+      const parsedLanguages = JSON.parse(res.data.language || "[]");
+      setLanguages(Array.isArray(parsedLanguages) ? parsedLanguages : []);
+      
+      const parsedSpecializations = JSON.parse(res.data.specilization || "[]");
+      setSpecializations(Array.isArray(parsedSpecializations) ? parsedSpecializations : []);
+      
+      const parsedYogaFor = JSON.parse(res.data.yogaFor || "[]");
+      setYogaFor(Array.isArray(parsedYogaFor) ? parsedYogaFor : []);
+      setData(res.data);
+      setImages(res.data.images || []);
+      setTotalImages(res.data.images.length || 0); // Add this line
+
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const res = await dispatch(getTutorById(id));
-        console.log(res);
-        setData(res.data);
-        setImages(res.data.images || []);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+   
     fetchData();
   }, [dispatch, id]);
-  // console.log(data);
-
+  
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [id,status])
+  );
   useEffect(() => {
     const handleBackPress = () => {
       if (navigation.isFocused()) {
@@ -64,6 +91,8 @@ const ShowHomeTutor = ({ navigation, route }) => {
     };
   }, [navigation]);
 
+ 
+
   const gridData = [
     {
       id: 1,
@@ -76,7 +105,7 @@ const ShowHomeTutor = ({ navigation, route }) => {
       id: 2,
       color: "#fff2cd",
       image: require("../../assets/home/location.png"),
-      text: "Add Location",
+      text: "Add Service Area Location",
       navigateTo: "AddTLocation",
     },
     {
@@ -87,22 +116,33 @@ const ShowHomeTutor = ({ navigation, route }) => {
       navigateTo: "AddTutorPhoto",
     },
   ];
-
+  // const filteredGridData = gridData;
+    
   const banner = [
     { id: 1, image: require("../../assets/get-screen/tutor1.jpg") },
-    { id: 2, image: require("../../assets/get-screen/tutor2.webp") },
-    { id: 3, image: require("../../assets/get-screen/tutor3.jpg") },
+ 
   ];
 
-  const renderBannerItem = ({ item }) => (
-    <View style={styles.carouselItem}>
-      <Image source={item.image} style={styles.carouselImage} />
-    </View>
+  const renderBannerItem = () => (
+    <View style={[styles.cameraContainer]}>
+     <TouchableOpacity activeOpacity={0.8}   onPress={() => navigation.navigate("AddTutorPhoto", { id })} 
+     >
+                <View style={styles.cameraButton}>
+                  <Image
+                    style={styles.cameraImage}
+                    source={require("../../assets/camera.png")}
+                  />
+                  <Text style={styles.cameraText}>Add Photo</Text>
+                </View>
+              </TouchableOpacity>  
+              </View>
+   
   );
 
   const renderApiImageItem = ({ item }) => (
     <View style={styles.carouselItem}>
       <Image source={{ uri: item.path }} style={styles.carouselImage} />
+      {totalImages > 1 && ( 
       <TouchableOpacity
         onPress={() => showPhotoAlert(item.id)}
         style={styles.closeImg}
@@ -112,6 +152,7 @@ const ShowHomeTutor = ({ navigation, route }) => {
           style={styles.deleteImg}
         />
       </TouchableOpacity>
+         )}
     </View>
   );
 
@@ -202,77 +243,72 @@ const ShowHomeTutor = ({ navigation, route }) => {
   };
 
   const handleDelete = async (id) => {
-    console.log(id);
     try {
+      console.log("ImageID :" + id);
       const res = await dispatch(deleteTutorLocation(id));
-      console.log(res);
+      console.log(res.success);
       if (res.success) {
-        Toast.show({
-          type: "success",
-          text1: res.message,
-          visibilityTime: 2000,
-          autoHide: true,
-        });
+        ToastAndroid.show(res.message, ToastAndroid.SHORT);
+        fetchData();
       }
     } catch (error) {
       console.error("Error deleting item:", error);
-      const msg = error.response.data.message;
-      Toast.show({
-        type: "error",
-        text1: msg || "An error occurred. Please try again.",
-        visibilityTime: 2000,
-        autoHide: true,
-      });
+      const msg = error.res.data.message;
+      ToastAndroid.show(msg, ToastAndroid.SHORT);
+
     }
   };
-
+  
+  
   const handleSlotDelete = async (id) => {
-    // console.log(id);
     try {
       const res = await dispatch(deleteTutorSlot(id));
-      console.log(res);
-      if (res.success) {
-        Toast.show({
-          type: "success",
-          text1: res.message,
-          visibilityTime: 2000,
-          autoHide: true,
-        });
+      console.log("ID: " + id);
+      console.log("res:", res);
+  
+      if (res && res.success) {
+        ToastAndroid.show(res.message, ToastAndroid.SHORT);
+
+        fetchData();
+      } else {
+      
+        ToastAndroid.show(res?.message || "Failed to delete slot. Please try again.", ToastAndroid.SHORT);
+
       }
     } catch (error) {
       console.error("Error deleting item:", error);
-      const msg = error.response.data.message;
-      Toast.show({
-        type: "error",
-        text1: msg || "An error occurred. Please try again.",
-        visibilityTime: 2000,
-        autoHide: true,
-      });
+  
+      const msg = error.res?.data?.message || "An error occurred. Please try again.";
+      ToastAndroid.show(msg, ToastAndroid.SHORT);
+
     }
   };
-
+  const editLocation = (longitude, latitude, locationName,id,radius) => {
+    // Navigate to the UpdateTLocation page with parameters
+    navigation.navigate('UpdateTLocation', {
+      id : id,
+      longitude: longitude,
+      latitude: latitude,
+      locationName: locationName,
+      radius1 : radius
+    });
+  };
   const handlePhotoDelete = async (id) => {
     // console.log(id);
     try {
       const res = await dispatch(deleteTutorImage(id));
+      console.log(id)
       console.log(res);
       if (res.success) {
-        Toast.show({
-          type: "success",
-          text1: res.message,
-          visibilityTime: 2000,
-          autoHide: true,
-        });
+        ToastAndroid.show(res.message, ToastAndroid.SHORT);
+
+        fetchData();
       }
     } catch (error) {
       console.error("Error deleting item:", error);
-      const msg = error.response.data.message;
-      Toast.show({
-        type: "error",
-        text1: msg || "An error occurred. Please try again.",
-        visibilityTime: 2000,
-        autoHide: true,
-      });
+      const msg = error.res.data.message;
+      ToastAndroid.show(msg, ToastAndroid.SHORT);
+
     }
   };
   return (
@@ -284,18 +320,18 @@ const ShowHomeTutor = ({ navigation, route }) => {
       ) : (
         <GestureHandlerRootView style={{ flex: 1 }}>
           <View style={styles.container}>
-            <StatusBar translucent backgroundColor="transparent" />
-            <View style={{ paddingTop: 20 }}>
+          <StatusBar backgroundColor={COLORS.primary} style="light" />
+          <View style={{ paddingTop: 20 }}>
               <Header
-                title={"View Home Tutor"}
-                icon={require("../../assets/back.png")}
+                title={"Your Profile"}
+                icon={icons.back}
               />
             </View>
             <ScrollView>
-              <View style={{ paddingVertical: 5 }}>
-                <View style={{ paddingHorizontal: 20, paddingVertical: 20 }}>
+              <View style={{ paddingVertical: 0 }}>
+                <View style={{ paddingHorizontal: 20, paddingVertical: 0 }}>
                   <Text style={{ fontFamily: "PoppinsSemiBold", fontSize: 16 }}>
-                    Tutor : {data && data.homeTutorName}
+                   {data && data.homeTutorName}
                   </Text>
                 </View>
                 <View style={styles.bannerContainer}>
@@ -310,8 +346,8 @@ const ShowHomeTutor = ({ navigation, route }) => {
                     contentContainerStyle={styles.bannerContentContainer}
                   />
                 </View>
-                <View style={{ paddingHorizontal: 20 }}>
-                  <View style={{ paddingVertical: 20 }}>
+                <View>
+                  <View style={{ paddingVertical: 10}}>
                     <FlatList
                       data={gridData}
                       renderItem={renderItem}
@@ -321,17 +357,15 @@ const ShowHomeTutor = ({ navigation, route }) => {
                     />
                   </View>
                   <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                    }}
+                    style={styles.innerView}
                   >
-                    <View>
+                   
+                      <View>
                       <Text style={styles.headingText}>Bio</Text>
-                      <View style={{ paddingVertical: 10 }}>
+
                         <Text style={styles.text}>{data.instructorBio}</Text>
                       </View>
-                    </View>
+                   
                     <TouchableOpacity
                       onPress={() =>
                         navigation.navigate("UpdateHomeTutor", { id: id })
@@ -343,74 +377,83 @@ const ShowHomeTutor = ({ navigation, route }) => {
                       />
                     </TouchableOpacity>
                   </View>
+                  {/* </View> */}
                   <View
-                    style={{
-                      flexDirection: "row",
-                    }}
-                  >
-                    <View>
-                      <Text style={styles.headingText}>
-                        Service Areas (Locations)
-                      </Text>
-                      <View style={{ paddingVertical: 10 }}>
-                        {data.serviceAreas &&
-                          data.serviceAreas.map((area) => (
-                            <View
-                              key={area.id}
-                              style={{
-                                flexDirection: "row",
-                                width: "100%",
-                                justifyContent: "space-between",
-                                marginBottom: 10,
-                              }}
-                            >
-                              <View style={{ flexDirection: "row" }}>
-                                <Image
-                                  source={require("../../assets/get-screen/location.png")}
-                                  style={{
-                                    marginRight: 10,
-                                    width: 20,
-                                    height: 24,
-                                  }}
-                                />
-                                <Text style={styles.text}>
-                                  {area.locationName}
-                                </Text>
-                              </View>
-                              <TouchableOpacity
-                                onPress={() => showAlert(area.id)}
-                              >
-                                <Image
-                                  source={require("../../assets/delete.png")}
-                                  style={styles.editImg}
-                                />
-                              </TouchableOpacity>
-                            </View>
-                          ))}
-                      </View>
-                    </View>
-                  </View>
+  style={{
+    backgroundColor: COLORS.white,
+    padding: 10,
+   
+    marginVertical: 15,
+    marginHorizontal: 15,
+    borderRadius: 10,
+  }}
+>
+<View>
+  <Text style={styles.headingText}>Service Areas (Locations)</Text>
+  <View style={{ paddingVertical: 10 }}>
+    {data.serviceAreas &&
+      data.serviceAreas.map((area, index) => (
+        <View
+          key={area.id}
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            marginBottom: 10,
+            // alignItems: "center",
+            flex:1
+          }}
+        >
+          <View style={{ flexDirection: "row"}}>
+            <Ionicons name="location-outline" size={18} color="black" style={{ marginRight: 5 }} />
+            <Text style={[styles.text, { flexWrap: 'wrap', width: 270 }]}>{area.locationName}</Text>
+          </View>
+          
+          {data.serviceAreas.length > 1 ? (
+            <TouchableOpacity
+              onPress={() => showAlert(area.id)}
+              style={{ paddingHorizontal: 10 }}
+            >
+              <Image
+                source={require("../../assets/delete.png")}
+                style={styles.editImg}
+              />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={() => editLocation(area.longitude,area.latitude,area.locationName,area.id,area.radius)}
+              style={{ paddingHorizontal: 0}}
+            >
+              <Image
+                source={require("../../assets/edit.png")}
+                style={styles.editImg}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+      ))}
+  </View>
+</View>
+
+
+</View>
                   <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      // marginVertical:5
-                    }}
+                    style={styles.innerView}
                   >
                     <View>
                       <Text style={styles.headingText}>Languages</Text>
-                      <View style={{ paddingVertical: 10 }}>
-                        <FlatList
-                          data={data.language}
-                          renderItem={({ item }) => (
-                            <View style={styles.timeSlotContainer}>
-                              <Text style={styles.timeSlotText}>{item}</Text>
+                      <View style={{ paddingVertical: 0 }}>
+                      
+                         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                          
+                          {languages.map((lang, index) => (
+                              <View style={styles.timeSlotContainer}>
+                            <Text key={index} style={styles.specilizationText}>
+                              {lang}
+                            </Text>
                             </View>
-                          )}
-                          numColumns={3}
-                          keyExtractor={(item, index) => index.toString()}
-                          contentContainerStyle={styles.timeSlotList}
-                        />
+                          ))}
+                          
+                        </ScrollView>
                       </View>
                     </View>
                     <TouchableOpacity
@@ -425,28 +468,21 @@ const ShowHomeTutor = ({ navigation, route }) => {
                     </TouchableOpacity>
                   </View>
                   <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      // marginVertical:5
-                    }}
+                    style={styles.innerView}
                   >
                     <View>
                       <Text style={styles.headingText}>Specialisation</Text>
                       <View style={{ paddingVertical: 10 }}>
-                        <FlatList
-                          data={data.specilization}
-                          renderItem={({ item }) => (
-                            <View style={styles.timeSlotContainer}>
-                              <Text style={styles.specilizationText}>
-                                {item}
-                              </Text>
-                            </View>
-                          )}
-                          numColumns={3}
-                          keyExtractor={(item, index) => index.toString()}
-                          contentContainerStyle={styles.timeSlotList}
-                        />
+                      
+                         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {specializations.map((spec, index) => (
+                       <View style={styles.timeSlotContainer}>
+                      <Text key={index} style={styles.specilizationText}>
+                        {spec}
+                      </Text>
+                        </View>
+                    ))}
+                  </ScrollView>
                       </View>
                     </View>
                     <TouchableOpacity
@@ -461,10 +497,7 @@ const ShowHomeTutor = ({ navigation, route }) => {
                     </TouchableOpacity>
                   </View>
                   <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                    }}
+                    style={styles.innerView}
                   >
                     <View>
                       <Text style={styles.headingText}>Session Offered</Text>
@@ -479,27 +512,27 @@ const ShowHomeTutor = ({ navigation, route }) => {
                           </Text>
                         </View>
                         {data && data.privateSessionPrice_Day && (
-                          <Text style={{ fontSize: 14, fontFamily: "Poppins" }}>
+                          <Text style={{ fontSize: 12, fontFamily: "Poppins" }}>
                             {" "}
                             * Individual Class (Day) - ₹{" "}
                             {data.privateSessionPrice_Day}
                           </Text>
                         )}
                         {data && data.privateSessionPrice_Month && (
-                          <Text style={{ fontSize: 14, fontFamily: "Poppins" }}>
+                          <Text style={{ fontSize: 12, fontFamily: "Poppins" }}>
                             {" "}
                             * Individual Class (Month) - ₹{" "}
                             {data.privateSessionPrice_Month}
                           </Text>
                         )}
                         {data && data.groupSessionPrice_Day && (
-                          <Text style={{ fontSize: 14, fontFamily: "Poppins" }}>
+                          <Text style={{ fontSize: 12, fontFamily: "Poppins" }}>
                             {" "}
                             * Group Class (Day) - ₹ {data.groupSessionPrice_Day}
                           </Text>
                         )}
                         {data && data.groupSessionPrice_Month && (
-                          <Text style={{ fontSize: 14, fontFamily: "Poppins" }}>
+                          <Text style={{ fontSize: 12, fontFamily: "Poppins" }}>
                             {" "}
                             * Group Class (Month) - ₹{" "}
                             {data.groupSessionPrice_Month}
@@ -522,6 +555,13 @@ const ShowHomeTutor = ({ navigation, route }) => {
                     <View
                       style={{
                         flexDirection: "row",
+                        backgroundColor:COLORS.white,
+                        padding:10,
+                        marginVertical:15,
+                        marginHorizontal:15,
+                        borderRadius:10,
+                      
+                        width : 330
                       }}
                     >
                       <View>
@@ -542,27 +582,23 @@ const ShowHomeTutor = ({ navigation, route }) => {
                   )}
 
                   <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                    }}
+                    style={styles.innerView}
                   >
                     <View>
                       <Text style={styles.headingText}>
                         Giving Yoga Sessions for{" "}
                       </Text>
                       <View style={{ paddingVertical: 10 }}>
-                        <FlatList
-                          data={data.yogaFor}
-                          renderItem={({ item }) => (
-                            <View style={styles.timeSlotContainer}>
-                              <Text style={styles.timeSlotText}>{item}</Text>
-                            </View>
-                          )}
-                          numColumns={2}
-                          keyExtractor={(item, index) => index.toString()}
-                          contentContainerStyle={styles.timeSlotList}
-                        />
+                     
+                         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {yogaFor.map((item, index) => (
+                       <View style={styles.timeSlotContainer}>
+                      <Text key={index} style={styles.timeSlotText}>
+                        {item}
+                      </Text>
+                      </View>
+                    ))}
+                  </ScrollView>
                       </View>
                     </View>
                     <TouchableOpacity
@@ -587,17 +623,55 @@ const ShowHomeTutor = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
+  innerView :{
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor:COLORS.white,
+    padding:10,
+    marginVertical:15,
+    marginHorizontal:15,
+    borderRadius:10,
+  
+  },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
   },
   bannerContainer: {
     // height: 200,
+    paddingVertical:10,
     paddingHorizontal: 10,
   },
   bannerContentContainer: {
     paddingHorizontal: 10,
   },
+
+cameraImage: {
+  width: 30,
+  height: 30,
+  alignSelf: "center",
+  justifyContent: "center",
+  alignItems: "center",
+  marginTop: 40,
+},
+cameraContainer: {
+  width: wp(40),
+  height: hp(20),
+  borderRadius: 10,
+  borderWidth: 1,
+  borderColor: COLORS.primary,
+  marginTop: 10,
+  marginBottom:10,
+  borderStyle:'dashed',
+  backgroundColor: "#fff",
+},
+cameraText: {
+  fontSize: hp(2),
+  fontFamily: "Poppins_Medium",
+  textAlign: "center",
+  marginTop:12,
+  color:COLORS.primary
+},
   carouselItem: {
     width: 110,
     height: 105,
@@ -613,7 +687,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   contentContainer: {
-    alignItems: "center",
+    // alignItems: "spa",
+    alignItems:'center',
+ 
   },
   itemContainer: {
     alignItems: "center",
@@ -633,8 +709,8 @@ const styles = StyleSheet.create({
   },
   imgText: {
     fontFamily: "Poppins",
-    fontSize: 13,
-    width: 100,
+    fontSize: 10,
+    width: 90,
     textAlign: "center",
   },
   horizontalContainer: {
@@ -675,17 +751,24 @@ const styles = StyleSheet.create({
   },
   headingText: {
     fontFamily: "PoppinsSemiBold",
-    fontSize: 16,
+    fontSize: 14,
+    marginVertical:10
   },
   text: {
     fontFamily: "Poppins",
-    fontSize: 14,
-    textAlign: "justify",
+    fontSize: 12,
     lineHeight: 24,
   },
   editImg: {
     width: 15,
     height: 15,
+  },
+  description :{
+  backgroundColor:COLORS.white,
+  marginHorizontal:20,
+  borderRadius:10,
+  padding:12,
+  // width : 330
   },
   timeSlotContainer: {
     flexDirection: "row",
@@ -698,9 +781,9 @@ const styles = StyleSheet.create({
   },
   timeSlotText: {
     fontFamily: "Poppins",
-    fontSize: 14,
+    fontSize: 12,
     backgroundColor: "#eeedfc",
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 8,
   },
   timeSlotList: {
@@ -725,7 +808,7 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins",
     fontSize: 13,
     backgroundColor: "#eeedfc",
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 8,
   },
 });

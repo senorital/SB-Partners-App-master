@@ -4,6 +4,7 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
+import { COLORS } from "../constants";
 
 export default function BookingTab({
   selectionMode,
@@ -22,7 +23,7 @@ export default function BookingTab({
       style={{
         height: hp("6.5%"),
         width: "100%",
-        backgroundColor: "#5F33E1",
+        backgroundColor: COLORS.primary,
         flexDirection: "row",
         justifyContent: "center",
         borderRadius: wp("100%"),
@@ -46,7 +47,7 @@ export default function BookingTab({
           style={{
             fontFamily: "Poppins",
             fontSize: wp("3.5%"),
-            color: getSelectionMode == 1 ? "#5F33E1" : "#fff",
+            color: getSelectionMode == 1 ? COLORS.primary : "#fff",
           }}
         >
           {option1}
@@ -70,7 +71,7 @@ export default function BookingTab({
           style={{
             fontFamily: "Poppins",
             fontSize: wp("3.5%"),
-            color: getSelectionMode == 2 ? "#5F33E1" : "#fff",
+            color: getSelectionMode == 2 ? COLORS.primary : "#fff",
           }}
         >
           {option2}

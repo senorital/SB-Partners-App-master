@@ -19,6 +19,7 @@ import Header from "../header/Header";
 import Button from "../button/Button";
 import { addTimeSlot } from "../../action/homeTutor/homeTutor";
 import { useDispatch } from "react-redux";
+import { COLORS, icons } from "../constants";
 
 const durationOptions = [
   { key: "15", value: "15" },
@@ -44,8 +45,12 @@ const serviceTypeItems=[
 
 const AddTimeSlot = ({ navigation, route }) => {
   const dispatch = useDispatch();
+  const today1 = new Date();
+
+  const todayDateString = today1.toISOString().split("T")[0];
+
   const { id } = route.params;
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(todayDateString);
   const [startTime, setStartTime] = useState(null);
   const [endTime, setEndTime] = useState(null);
   const [duration, setDuration] = useState("");
@@ -56,6 +61,7 @@ const AddTimeSlot = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const [serviceType,setServiceType]=useState('');
   const [numberOfPeople, setNumberOfPeople] = useState("");
+  const [selectedDates, setSelectedDates] = useState([]);
 
   useEffect(() => {
     const handleBackPress = () => {
@@ -194,6 +200,7 @@ const AddTimeSlot = ({ navigation, route }) => {
           visibilityTime: 2000,
           autoHide: true,
         });
+        navigation.goBack();
       }
     } catch (error) {
       // If an error occurs during the process, show an error message
@@ -215,8 +222,8 @@ const AddTimeSlot = ({ navigation, route }) => {
     return `${hours}:${minutes}`;
   };
   const theme = {
-    calendarBackground: "#fff",
-    textSectionTitleColor: "rgba(102, 42, 178, 1)",
+    calendarBackground: COLORS.white,
+    textSectionTitleColor: COLORS.primary,
     selectedDayTextColor: "white",
     dayTextColor: "black",
     textDisabledColor: "gray",
@@ -240,14 +247,49 @@ const AddTimeSlot = ({ navigation, route }) => {
     });
   };
 
+ // Helper function to get the start of the current week (Monday)
+ const getWeekStartDate = () => {
+  const date = new Date();
+  const day = date.getDay();
+  const diff = (day >= 1 ? day - 1 : 6) * 24 * 60 * 60 * 1000;
+  return new Date(date.getTime() - diff).toISOString().split("T")[0];
+};
+
+// Helper function to get dates of the current week (Monday to Sunday)
+const getWeekDates = () => {
+  const startOfWeek = new Date(getWeekStartDate());
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(startOfWeek);
+    date.setDate(startOfWeek.getDate() + i);
+    return {
+      date: date.toISOString().split("T")[0],
+      day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+    };
+  });
+};
+
+const weekDates = getWeekDates();
+
+const handleTabPress = (date) => {
+  setSelectedDates((prevSelectedDates) => {
+    if (prevSelectedDates.includes(date)) {
+      // Remove date if it's already selected
+      return prevSelectedDates.filter((d) => d !== date);
+    } else {
+      // Add date if it's not selected
+      return [...prevSelectedDates, date];
+    }
+  });
+};
+
   console.log(selectedSlots);
   return (
     <KeyboardAvoidingView behavior="padding" style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" />
-      <View style={{ paddingTop: 20 }}>
+          <StatusBar backgroundColor={COLORS.primary} style="light" />
+          <View style={{ paddingTop: 20 }}>
         <Header
           title={"Add Time Slot"}
-          icon={require("../../assets/back.png")}
+          icon={icons.back}
         />
       </View>
 
@@ -261,6 +303,28 @@ const AddTimeSlot = ({ navigation, route }) => {
             maxDate={maxDate}
           />
         </View>
+
+     {/* <View style={styles.tabContainer}>
+          {weekDates.map((day) => (
+            <TouchableOpacity
+              key={day.date}
+              style={[
+                styles.tab,
+                selectedDates.includes(day.date) && styles.selectedTab
+              ]}
+              onPress={() => handleTabPress(day.date)}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  selectedDates.includes(day.date) && styles.selectedTabText
+                ]}
+              >
+                {day.day}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View> */}
 
         <View style={{ paddingHorizontal: 15 }}>
           <View style={{ marginTop: 10 }}>
@@ -398,6 +462,29 @@ const AddTimeSlot = ({ navigation, route }) => {
 export default AddTimeSlot;
 
 const styles = StyleSheet.create({
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 10,
+    marginVertical: 10,
+    backgroundColor: COLORS.grey,
+    borderRadius: 5,
+  },
+  tab: {
+    flex: 1,
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedTab: {
+    backgroundColor: COLORS.primary,
+  },
+  tabText: {
+    color: COLORS.black,
+    fontWeight: 'bold',
+  },
+  selectedTabText: {
+    color: COLORS.white,
+  },
   container: {
     flex: 1,
     backgroundColor: "#ffffff",

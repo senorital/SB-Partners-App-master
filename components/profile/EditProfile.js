@@ -14,6 +14,8 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
+import MultiSelect from "react-native-multiple-select";
+import { Ionicons } from "@expo/vector-icons";
 // import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 // import MapView, { Marker } from "react-native-maps";
 // import { GOOGLE_MAPS_APIKEY } from "../../apiKey/index";
@@ -27,6 +29,8 @@ import Button from "../button/Button";
 import AddCustomData from "../addCustomdata/AddCustomData";
 import * as Location from "expo-location";
 import { getInstructor, updateInstructor } from "../../action/auth/auth";
+import { COLORS, icons } from "../constants";
+import CustomAlertModal from "../CustomAlert/CustomAlertModal";
 
 const defaultLocation = {
   latitude: 37.7749,
@@ -62,6 +66,43 @@ const EditProfile = ({ navigation }) => {
   const [errorMsg, setErrorMsg] = useState(null);
   const [address, setAddress] = useState(null);
   const [loading1, setLoading1] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState([]);
+  const [dateError, setDateError] = useState("");
+  const [imageError, setImageError] = useState("");
+  const [languagesError, setLanguagesError] = useState("");
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [onAlertOk, setOnAlertOk] = useState(() => () => {});
+  const [boldText, setBoldText] = useState('');
+
+  const items = [
+    { id: 'English', name: 'English' },
+    { id: 'Spanish', name: 'Spanish' },
+    { id: 'French', name: 'French' },
+    { id: 'German', name: 'German' },
+    { id: 'Hindi', name: 'Hindi' },
+    { id: 'Bengali', name: 'Bengali' },
+    { id: 'Telugu', name: 'Telugu' },
+    { id: 'Marathi', name: 'Marathi' },
+    { id: 'Tamil', name: 'Tamil' },
+    { id: 'Urdu', name: 'Urdu' },
+    { id: 'Gujarati', name: 'Gujarati' },
+    { id: 'Malayalam', name: 'Malayalam' },
+    { id: 'Kannada', name: 'Kannada' },
+    { id: 'Odia', name: 'Odia' },
+    { id: 'Punjabi', name: 'Punjabi' },
+    { id: 'Assamese', name: 'Assamese' },
+    { id: 'Maithili', name: 'Maithili' },
+    { id: 'Sanskrit', name: 'Sanskrit' },
+    { id: 'Konkani', name: 'Konkani' },
+    { id: 'Nepali', name: 'Nepali' },
+    { id: 'Manipuri', name: 'Manipuri' },
+    { id: 'Sindhi', name: 'Sindhi' },
+    { id: 'Dogri', name: 'Dogri' },
+    { id: 'Kashmiri', name: 'Kashmiri' },
+    { id: 'Bodo', name: 'Bodo' },
+  ];
+  
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -73,6 +114,9 @@ const EditProfile = ({ navigation }) => {
     console.log(result);
     if (!result.canceled) {
       setImage(result.assets[0].uri);
+      setErrors(false); // Clear error when a photo is selected
+    } else {
+      setErrors(true); // Set error if no photo is selected
     }
   };
 
@@ -170,6 +214,7 @@ const EditProfile = ({ navigation }) => {
     setErrors((prevState) => ({ ...prevState, [input]: error }));
   };
 
+
   const showDatePicker = () => {
     setDatePickerVisibility(true);
   };
@@ -184,8 +229,6 @@ const EditProfile = ({ navigation }) => {
       handleError("Please select a valid date", "date");
       return; // Exit the function without setting the date state
     }
-
-    // console.warn("A date has been picked: ", date);
     const dt = new Date(date);
     const x = dt.toISOString().split("T");
     const x1 = x[0].split("-");
@@ -200,90 +243,88 @@ const EditProfile = ({ navigation }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        await dispatch(getInstructor());
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        const msg = error.response.data?.message;
-        Toast.show({
-          type: "error",
-          text1: msg || "An error occurred. Please try again.",
-          visibilityTime: 2000,
-          autoHide: true,
-        });
-      }
-    };
+      const res =   await dispatch(getInstructor());
+      // Ensure `res.data.instructor.languages` is a string and parse it
+      console.log('Raw response:', res); // Debugging line
 
-    fetchData();
-  }, [dispatch]);
+      const languagesString = res.data.instructor.languages;
+      const parsedLanguages = JSON.parse(languagesString);
+      console.log('Parsed languages:', parsedLanguages); // Debugging line
+
+      // Check if parsedLanguages is an array
+      if (Array.isArray(parsedLanguages)) {
+        setLanguages(parsedLanguages);
+
+        const selectedIds = items
+        .filter(item => parsedLanguages.map(lang => lang.trim()).includes(item.name.trim()))
+        .map(item => item.id);
+
+      console.log('Selected IDs:', selectedIds); // Debugging line
+      setSelectedLanguage(selectedIds);
+      const imageUri = res.data.instructor.imagePath; // Assuming the image URI is in the response
+      if (imageUri) {
+        setImage(imageUri);
+      }
+    } else {
+      setLanguages([]);
+      setSelectedLanguage([]);
+    }
+  
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    const msg = error.response?.data?.message;
+    Toast.show({
+      type: 'error',
+      text1: msg || 'An error occurred. Please try again.',
+      visibilityTime: 2000,
+      autoHide: true,
+    });
+  }
+};
+
+fetchData();
+}, [dispatch]);
 
   useEffect(() => {
-    if (user && user.data) {
+    if (user && user.instructor) {
       setInputs({
-        name: user.data.name || "",
-        email: user.data.email || "",
-        mobileNumber: user.data.phoneNumber || "",
-        bio: user.data.bio || "",
-        facebook: user.data.facebook || "",
-        twitter_x: user.data.twitter_x || "",
-        linkedIn: user.data.linkedIn || "",
-        instagram: user.data.instagram || "",
+        name: user.instructor.name || "",
+        email: user.instructor.email || "",
+        mobileNumber: user.instructor.phoneNumber || "",
+        bio: user.instructor.bio || "",
+        facebook: user.instructor.facebook || "",
+        twitter_x: user.instructor.twitter_x || "",
+        linkedIn: user.instructor.linkedIn || "",
+        instagram: user.instructor.instagram || "",
       });
+      setDate(user.instructor.dateOfBirth || "");
+      // setLanguages(user.instructor.languages || "");
+
     }
   }, [user]);
-
   const validate = async () => {
     let isValid = true;
-
-    console.log("Inputs:", inputs);
-    console.log("Date:", date);
-    console.log("Languages:", languages);
-    console.log("Image:", image);
 
     if (!inputs.name) {
       handleError("Please input name", "name");
       isValid = false;
-      Toast.show({
-        type: "error",
-        text1: "Validation Error",
-        text2: "Please input name",
-      });
     }
     if (date === "Select Date") {
-      handleError("Please select a date", "date");
+      handleError("Please select your date of birth", "date");
       isValid = false;
-      Toast.show({
-        type: "error",
-        text1: "Validation Error",
-        text2: "Please select a date",
-      });
     }
-
     if (!inputs.bio) {
       handleError("Please input bio", "bio");
       isValid = false;
-      Toast.show({
-        type: "error",
-        text1: "Validation Error",
-        text2: "Please input bio",
-      });
     }
-
-    if (languages.length === 0) {
+    if (selectedLanguage.length === 0) {
+      handleError("Please select your languages", "languages");
       isValid = false;
-      Toast.show({
-        type: "error",
-        text1: "Validation Error",
-        text2: "Please select at least one language",
-      });
     }
-
     if (!image) {
+      handleError("Please upload your image", "image");
       isValid = false;
-      Toast.show({
-        type: "error",
-        text1: "Validation Error",
-        text2: "Please upload image",
-      });
     }
 
     if (isValid) {
@@ -296,60 +337,34 @@ const EditProfile = ({ navigation }) => {
   const handleSubmit = async () => {
     let isValid = true;
 
-    console.log("Inputs:", inputs);
-    console.log("Date:", date);
-    console.log("Languages:", languages);
-    console.log("Image:", image);
-
     if (!inputs.name) {
       handleError("Please input name", "name");
       isValid = false;
-      Toast.show({
-        type: "error",
-        text1: "Validation Error",
-        text2: "Please input name",
-      });
     }
-    if (date === "Select Date") {
-      handleError("Please select a date", "date");
+    if (!date || date === "Please select DOB") {
+      handleError("Please select your date of birth", "date");
       isValid = false;
-      Toast.show({
-        type: "error",
-        text1: "Validation Error",
-        text2: "Please select a date",
-      });
     }
-
     if (!inputs.bio) {
       handleError("Please input bio", "bio");
       isValid = false;
-      Toast.show({
-        type: "error",
-        text1: "Validation Error",
-        text2: "Please input bio",
-      });
     }
-
-    if (languages.length === 0) {
+    if (selectedLanguage.length < 2) { 
+      handleError("Please select at least 2 languages", "languages");
       isValid = false;
-      Toast.show({
-        type: "error",
-        text1: "Validation Error",
-        text2: "Please select at least one language",
-      });
     }
-
     if (!image) {
+      handleError("Please upload your image", "image");
       isValid = false;
-      Toast.show({
-        type: "error",
-        text1: "Validation Error",
-        text2: "Please upload image",
-      });
     }
+
+    if (!isValid) {
+      return;
+    }
+
     try {
       setLoading1(true);
-
+      // console.log("etwefwef" +  String(inputs.location.longitude));
       const formData = new FormData();
       formData.append("dateOfBirth", date);
       formData.append("location", address);
@@ -357,9 +372,11 @@ const EditProfile = ({ navigation }) => {
       formData.append("bio", inputs.bio);
       formData.append("longitude", String(location.longitude));
       formData.append("latitude", String(location.latitude));
-      languages.forEach((language) => {
+      selectedLanguage.forEach((language) => {
         formData.append("languages", language);
       });
+
+      console.log("Address :" + inputs.address);
 
       if (image) {
         formData.append("profileImage", {
@@ -382,7 +399,7 @@ const EditProfile = ({ navigation }) => {
         formData.append("twitter_x", inputs.twitter_x);
       }
 
-      console.log("FormData:", formData);
+      console.log("FormData123:", formData);
 
       const res = await dispatch(updateInstructor(formData));
       console.log(res);
@@ -394,14 +411,41 @@ const EditProfile = ({ navigation }) => {
           visibilityTime: 2000,
           autoHide: true,
         });
-        navigation.navigate("ProfileOverview");
+
+        // Fetch the instructor profile data to check profile completeness and qualifications
+        const profileRes = await dispatch(getInstructor());
+        const profileComplete = profileRes.data.profileComplete;
+        const qualifications = profileRes.data.instructor.qualifications;
+        const userName = profileRes.data.instructor.name;
+
+        if (profileComplete) {
+          const hasQualificationIn = (type) => {
+            return qualifications.some((q) => q.qualificationIn === type);
+          };
+
+          if (hasQualificationIn("HomeTutor")) {
+            navigation.navigate("ProfileOverview");
+          } else {
+            console.log(12);
+            setBoldText(userName);
+            setShowAlert(true);
+            setAlertMessage("Please complete your HomeTutor qualification.");
+            setOnAlertOk(() => () => 
+              setShowAlert(false),
+              navigation.navigate("AddQualification")
+            );
+           
+          }
+          console.log(13);
+
+        } 
       }
     } catch (error) {
       console.error("Error occurred while updating profile:", error);
-      const msg = error.response.data?.message;
+      const msg = error.response?.data?.message;
       Toast.show({
         type: "error",
-        text1: msg ,
+        text1: msg || "An error occurred. Please try again.",
         visibilityTime: 2000,
         autoHide: true,
       });
@@ -409,6 +453,9 @@ const EditProfile = ({ navigation }) => {
       setLoading1(false);
     }
   };
+
+
+ 
 
   const renderStep = () => {
     switch (currentStep) {
@@ -476,15 +523,18 @@ const EditProfile = ({ navigation }) => {
 
           <Input
             style={{
-              padding: 8,
               textAlignVertical: "top",
-              fontFamily: "Poppins",
+              width : 300,
+              paddingTop:10,
+              paddingBottom:10,
+              color:'grey'
+              // fontFamily: "Poppins",
             }}
             value={inputs.bio}
             onChangeText={(text) => handleOnchange(text, "bio")}
             onFocus={() => handleError(null, "bio")}
             label="Bio"
-            placeholder="Answer"
+            placeholder="Enter Your Bio"
             multiline
             numberOfLines={5}
             error={errors.bio}
@@ -494,7 +544,10 @@ const EditProfile = ({ navigation }) => {
             Date Of Birth <Text style={{ color: "red" }}>*</Text>
           </Text>
           <TouchableOpacity
-            style={styles.inputContainer}
+            style={[
+              styles.inputContainer,
+              errors.date ? styles.errorBorder : styles.defaultBorder
+            ]}
             onPress={() => {
               showDatePicker();
             }}
@@ -502,12 +555,16 @@ const EditProfile = ({ navigation }) => {
             <Text
               style={{
                 fontSize: 14,
-                color: "gray",
-                padding: 10,
-                fontFamily: "Poppins",
+                color: date ? 'black' : 'gray',
+               
+                fontFamily: 'Poppins', fontSize: 14,
+                color: date ? 'black' : 'gray',
+                marginLeft:0,
+                marginTop:10,
+                fontFamily: 'Poppins',
               }}
             >
-              {date}
+              {date || 'Please select DOB'}
             </Text>
           </TouchableOpacity>
           <DateTimePickerModal
@@ -516,25 +573,118 @@ const EditProfile = ({ navigation }) => {
             onConfirm={handleDateConfirm}
             onCancel={hideDatePicker}
           />
-          <Text style={styles.errorText}>{errors.date}</Text>
-          <AddCustomData
-            languages={languages}
-            setLanguages={setLanguages}
-            label={"Languages"}
-            isRequired={true}
-          />
-          {/* Display the list of languages */}
-          <View style={styles.languageList}>
-            {languages.map((language, index) => (
-              <View key={index} style={styles.languageItem}>
-                <Text>{language}</Text>
-              </View>
-            ))}
+            {errors.date ? (
+         <Text style={styles.errorText}>Please select DOB</Text>
+            ) : null}
+          <Text style={styles.label}>
+          Select your Languages <Text style={{ color: "red" }}>*</Text>
+          </Text>
+          <View
+        style={[
+          styles.multiSelectContainer,
+          errors.languages ? styles.errorBorder : styles.defaultBorder,
+        ]}
+      >
+          <MultiSelect
+        hideTags
+        items={items}
+        uniqueKey="id"
+        onSelectedItemsChange={(newSelectedItems) => {
+          setSelectedLanguage(newSelectedItems);
+          setErrors({
+            languages: newSelectedItems.length < 1,
+          });
+      
+        }}
+        
+        selectedItems={selectedLanguage}
+        selectText="Select Your Language"
+        searchInputPlaceholderText="Search Items..."
+        altFontFamily="Poppins"
+        tagRemoveIconColor="#CCC"
+        tagBorderColor="#CCC"
+        tagTextColor="#CCC"
+        selectedItemTextColor="#CCC"
+        selectedItemIconColor="#CCC"
+        itemTextColor="#000"
+        displayKey="name"
+        searchInputStyle={{ color: '#000', fontFamily: 'Poppins', paddingHorizontal: 0 }}
+        submitButtonColor="#000"
+        submitButtonText=""
+        hideSubmitButton
+        styleInputGroup={styles.styleInputGroup}
+        styleDropdownMenuSubsection={styles.styleDropdownMenuSubsection}
+        styleDropdownMenu={styles.styleDropdownMenu}
+        styleMainWrapper={styles.styleMainWrapper}
+        flatListProps={{
+          renderItem: ({ item }) => {
+            const isSelected = selectedLanguage.includes(item.id);
+            return (
+              <TouchableOpacity
+                style={[
+                  { padding: 10, margin: 2, borderRadius: 10 },
+                  { backgroundColor: isSelected ? '#EEEEEE' : '#fff' }
+                ]}
+                onPress={() => {
+                  const newSelectedItems = isSelected
+                    ? selectedLanguage.filter(id => id !== item.id)
+                    : [...selectedLanguage, item.id];
+                  setSelectedLanguage(newSelectedItems);
+                   // Update error state
+                   setErrors({
+                    languages: newSelectedItems.length < 1,
+                  });
+                }}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={[
+                    styles.itemText,
+                    { color: isSelected ? COLORS.primary : '#000', fontFamily: 'Poppins' }
+                  ]}>
+                    {item.name}
+                  </Text>
+                  {isSelected && (
+                    <Ionicons name="checkmark" size={20} color="#000" />
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          }
+        }}
+      />
           </View>
+
+          {errors.languages && (
+        <Text style={styles.errorText}>Please select at least one or two languages</Text>
+      )}
+      <View style={styles.tabsContainer}>
+        {selectedLanguage.map(itemId => {
+          const item = items.find(i => i.id === itemId);
+          if (!item) return null;
+          return (
+            <View key={item.id} style={styles.tab}>
+              <Text style={styles.tabText}>{item.name}</Text>
+              <TouchableOpacity
+                style={styles.removeButton}
+                onPress={() => {
+                  const updatedItems = selectedLanguage.filter(id => id !== itemId);
+                  setSelectedLanguage(updatedItems);
+                   // Update error state
+                   setErrors({
+                    languages: updatedItems.length < 1,
+                  });
+                }}
+              >
+                <Text style={styles.removeButtonText}>×</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+      </View>
           <Text style={styles.label}>
             Upload Image <Text style={{ color: "red" }}>*</Text>
           </Text>
-          <View style={styles.cameraContainer}>
+          <View style={[styles.cameraContainer,  errors.image ? styles.errorBorder : styles.defaultBorder,]}>
             {image ? (
               <TouchableOpacity activeOpacity={0.8} onPress={pickImage}>
                 <Image
@@ -557,7 +707,11 @@ const EditProfile = ({ navigation }) => {
                 </View>
               </TouchableOpacity>
             )}
+            
           </View>
+          {errors.image && (
+        <Text style={styles.errorText}>Please select a photo</Text>
+      )}
         </View>
         {/* <View style={styles.stepContainer}> */}
         {/* <View style={styles.autocompleteContainer}> */}
@@ -714,11 +868,11 @@ const EditProfile = ({ navigation }) => {
   // };
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" />
+      <StatusBar backgroundColor={COLORS.primary} style="light" />
       <View style={{ paddingTop: 20 }}>
         <Header
           title={"Edit Profile"}
-          icon={require("../../assets/back.png")}
+          icon={icons.back}
         />
       </View>
       {/* <View style={{paddingHorizontal:20}}>
@@ -738,6 +892,14 @@ const EditProfile = ({ navigation }) => {
       <View style={{ flex: 1, marginVertical: 10 }}>
         <View>{renderStep1()}</View>
       </View>
+      <CustomAlertModal
+        visible={showAlert}
+        greeting="Hello ,"
+        boldText={boldText}
+        message={alertMessage}
+        onCancel={() => setShowAlert(false)}
+        onOk={onAlertOk}
+      />
     </View>
   );
 };
@@ -751,26 +913,37 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins",
     fontSize: 16,
   },
+  defaultBorder: {
+    borderColor: COLORS.icon_background,
+    borderWidth:1,
+    borderRadius:10 // Default border color
+  },
+  errorBorder: {
+    borderColor: 'red',
+    borderWidth:1,
+    borderRadius:10 // Error border color
+  },
+  multiSelectContainer: {
+    marginBottom: 10,
+  },
   label: {
-    // marginVertical: 5,
+    marginVertical: 5,
+    color : COLORS.primary,
     fontSize: 14,
-    fontFamily: "Poppins",
+    fontFamily: "Poppins_Medium",
   },
   errorText: {
-    marginTop: 7,
+    fontFamily:'Poppins',
     color: "red",
     fontSize: 12,
-    fontFamily: "Poppins",
   },
   inputContainer: {
     backgroundColor: "#fff",
     flexDirection: "row",
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    borderWidth: 1,
+  marginBottom:10,
+    paddingHorizontal: 10,
     fontFamily: "Poppins",
     height: 45,
-    borderColor: "gray",
   },
   languageList: {
     flexDirection: "row", // Display items horizontally
@@ -789,6 +962,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "gray",
     marginTop: 10,
+    marginBottom:10,
     backgroundColor: "#fff",
   },
   cameraImage: {
@@ -845,12 +1019,67 @@ const styles = StyleSheet.create({
   errorContainer: {
     alignItems: "center",
   },
-  errorText: {
-    color: "#f00",
-  },
+
   retryText: {
     color: "#00f",
     textDecorationLine: "underline",
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 10
+  },
+  tab: {
+    backgroundColor: COLORS.background,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginRight: 5,
+    marginTop:3,
+    marginBottom: 5,
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  styleInputGroup: {
+    borderWidth: 0, // Remove underline from input group
+    borderBottomWidth : 0,
+    paddingVertical:10,
+   marginLeft:0,
+  //  padding:8,
+  padding:0,
+  minHeight:48,
+   paddingHorizontal :0
+  },
+  styleDropdownMenuSubsection: {
+    borderWidth: 0, // Remove underline from dropdown menu subsection
+    borderBottomWidth : 0,
+    paddingVertical:10,
+    paddingHorizontal:0
+  },
+  styleMainWrapper: {
+    
+    paddingHorizontal: 10,
+    paddingVertical:0,
+  },
+  tabText: {
+    color: '#000',
+    fontSize: 13,
+    fontFamily:'Poppins'
+  },
+  removeButton: {
+    marginLeft: 5,
+    padding: 5,
+    marginTop:-5,
+    borderRadius: 10,
+  },
+  removeButtonText: {
+    fontSize: 16,
+    color: '#000'
+  },
+  styleDropdownMenu: {
+    borderWidth: 0, // Remove underline from dropdown menu
+    // paddingVertical:10,
+
   },
 });
 

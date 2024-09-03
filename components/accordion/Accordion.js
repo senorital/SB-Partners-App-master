@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { COLORS
 
+ } from "../constants";
 const Accordion = ({ title, answer }) => {
   const [accordionOpen, setAccordionOpen] = useState(false);
 
@@ -13,8 +16,13 @@ const Accordion = ({ title, answer }) => {
         <Text style={[styles.title, accordionOpen && styles.openTitle]}>
           {title}
         </Text>
-        <Text style={styles.icon}>{accordionOpen ? "-" : "+"}</Text>
+        <Icon 
+          name={accordionOpen ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
+          size={20} 
+          color="#000" 
+        />
       </TouchableOpacity>
+      <View style={styles.hr}/>
       {accordionOpen && (
         <View style={styles.content}>
           <Text style={styles.answer}>{answer}</Text>
@@ -25,12 +33,20 @@ const Accordion = ({ title, answer }) => {
 };
 
 const styles = StyleSheet.create({
+  hr: {
+    position: "relative",
+    width: "100%",
+    borderBottomColor: COLORS.grey,
+    borderBottomWidth: 1,
+    opacity: 0.1,
+    marginTop: 0,
+  },
   container: {
-    backgroundColor: "#fff",
+    // backgroundColor: "#fff",
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#dcdcdc",
-    borderRadius: 5,
+    // borderWidth: 1,
+    // borderColor: "#dcdcdc",
+    // borderRadius: 5,
   },
   header: {
     flexDirection: "row",
@@ -41,23 +57,29 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 14,
-    fontWeight: "300",
-    fontFamily:'Poppins'
+    fontFamily: 'Poppins',
+    width: 270,
+    flexWrap: 'wrap'
   },
   openTitle: {
-    color: "#5F33E1 ", // Change color when accordion is open
+    color: COLORS.primary, // Change color when accordion is open
+    fontFamily:'Poppins_Medium'
   },
   icon: {
     fontSize: 20,
     fontWeight: "300",
+    
   },
   content: {
-    paddingHorizontal: 10,
+    marginHorizontal: 10,
     paddingVertical: 15,
   },
   answer: {
-    fontSize: 12,
-    fontFamily:'Poppins'
+    fontSize: 12.5,
+    justifyContent:'space-evenly',
+    alignContent:'space-evenly',
+    textAlign:'auto',
+    fontFamily: 'Poppins'
   },
 });
 

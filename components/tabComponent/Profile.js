@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
   Text,
   View,
@@ -14,19 +14,30 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import { Avatar } from "react-native-elements";
 import Header from "../header/Header";
-import { getInstructor } from "../../action/auth/auth";
-
-const Profile = ({ navigation }) => {
+import { getBankDetails, getInstructor, getKYC } from "../../action/auth/auth";
+import Border from "../border/BorderRadius";
+import { COLORS, icons } from "../constants";
+import { FONTS } from "../constants/theme";
+import Login from "../login/Login";
+import {version} from "../../package.json";
+import { useNavigation, CommonActions } from '@react-navigation/native';
+import { Ionicons } from "@expo/vector-icons";
+const Profile = () => {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
-  
+  const kycData = useSelector((state) => state.auth.aadharVerification); // Ensure correct data path
+  const bankData = useSelector((state) => state.auth.bankVerification); // Ensure correct data path
+  const navigation = useNavigation();
   useEffect(() => {
     const fetchData = async () => {
       try {
-        await dispatch(getInstructor());
+        await dispatch(getInstructor()),
+        await dispatch(getKYC()),
+        await dispatch(getBankDetails())
+
       } catch (error) {
         console.error("Error fetching data:", error);
-        const msg = error.response?.data?.message || "An error occurred. Please try again.";
+        const msg = error.res?.data.instructor?.message || "An error occurred. Please try again.";
         Toast.show({
           type: "error",
           text1: msg,
@@ -43,6 +54,21 @@ const Profile = ({ navigation }) => {
 
     fetchData();
   }, [dispatch]);
+
+  const isProfileIncomplete = () => {
+    const requiredFields = ["bio", "dateOfBirth"];
+    return requiredFields.some((field) => !user?.instructor?.[field]);
+  };
+
+  const isKYCIncomplete = () => {
+    const requiredFields = ["aadharNumber", "address"];
+    return requiredFields.some((field) => !kycData.data?.[field]);
+  };
+
+  const isBankDetailsIncomplete = () => {
+    const requiredFields = ["bankName", "IFSCCode","accountNumber"];
+    return requiredFields.some((field) => !bankData.data[0]?.[field]);
+  };
 
   useEffect(() => {
     const handleBackPress = () => {
@@ -61,169 +87,124 @@ const Profile = ({ navigation }) => {
     };
   }, [navigation]);
 
-  const handleLogout = async () => {
+
+  const handleLogout = async (navigation) => {
     try {
-      await AsyncStorage.removeItem("authToken");
-      await AsyncStorage.setItem("isLoggedIn", "false"); // Update isLoggedIn value to false
+      // Clear authentication token and set login status to false
+      await AsyncStorage.removeItem('authToken');
+      await AsyncStorage.setItem('isLoggedIn', 'false');
+  
+      // Show success toast
       Toast.show({
-        type: "success",
-        text1: "Logout Successful",
+        type: 'success',
+        text1: 'Logout Successful',
         visibilityTime: 3000,
       });
-      // navigation.navigate("authStack");
+  
+      // Reset the navigation state and navigate to Login screen
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'authStack' }],
+        })
+      );
     } catch (error) {
-      console.error("Error occurred while logging out:", error);
-      // Show toast message
+      console.error('Error occurred while logging out:', error);
+      // Show error toast
       Toast.show({
-        type: "error",
-        text1: "Error Logging Out",
+        type: 'error',
+        text1: 'Error Logging Out',
         visibilityTime: 3000,
       });
     }
   };
   
+  const IncompleteInfoTag = ({ isIncomplete, message, color ,textColor}) => {
+    if (!isIncomplete) return null;
+  
+    return (
+      <View style={[styles.missingInfoTag, { backgroundColor: color }]}>
+        <Ionicons
+          name="information-circle-outline"
+          style={[styles.missingInfoIcon, { color :textColor }]}
+        />
+        <Text style={[styles.missingInfoText, { color :textColor }]}>{message}</Text>
+      </View>
+    );
+  };
 
-  const imageUrl = user?.data?.imagePath
-    ? { uri: user.data.imagePath }
+  const imageUrl = user?.instructor?.imagePath
+    ? { uri: user.instructor.imagePath }
     : require("../../assets/dAvatar.jpg");
 
+
+
   return (
+    
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" />
+      <StatusBar backgroundColor={COLORS.primary} style="light" />
+
       <View style={{ paddingTop: 20 }}>
-        <Header title={"Profile"} icon={require("../../assets/back.png")} />
+        <Header title={"Profile"} icon={icons.back} />
       </View>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View style={{ flex: 1 }}>
-          <View
-            style={{
-              marginHorizontal: 20,
-              flexDirection: "row",
-              marginBottom: 15,
-            }}
-          >
+          <View style={{}}>
+          <View style={styles.profileContainer}>
             <Avatar rounded source={imageUrl} size={75} />
-            <View style={{ marginLeft: 20 }}>
-              <Text style={{ fontFamily: "PoppinsSemiBold", fontSize: 16 }}>
-                {user && <>{user.data?.name}</>}
+            <View style={styles.profileTextContainer}>
+              <Text style={styles.profileName}>
+                {user && <>{user.instructor?.name}</>}
               </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontFamily: "Poppins",
-                  color: "gray",
-                  marginTop: 3,
-                }}
-              >
-                {user && <>{user.data?.email}</>}
+              <Text style={styles.profileEmail}>
+                {user && <>{user.instructor?.email}</>}
               </Text>
             </View>
+          </View>      
+          <Border color={COLORS.primary}  />
           </View>
-          {/* <TouchableOpacity
-          //   onPress={() => navigation.navigate("MyAppointment")}
-          >
-            <View style={styles.viewContainer}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Image
-                  style={styles.image}
-                  source={require("../../assets/profile-icon/shopping-bag.png")}
-                />
-                <Text style={styles.textContainer}>My Appointment</Text>
-              </View>
-              <Image
-                style={styles.image}
-                source={require("../../assets/profile-icon/arrow-right.png")}
-              />
-            </View>
-          </TouchableOpacity>
-          <View style={styles.hr} /> */}
-          <TouchableOpacity onPress={() => navigation.navigate("MainProfile")}>
-            <View style={styles.viewContainer}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Image
-                  style={styles.image}
-                  source={require("../../assets/profile-icon/profile.png")}
-                />
-                <Text style={styles.textContainer}>My Profile</Text>
-              </View>
-              <Image
-                style={styles.image}
-                source={require("../../assets/profile-icon/arrow-right.png")}
-              />
-            </View>
-          </TouchableOpacity>
 
-          {/* <View style={styles.hr} />
-          <TouchableOpacity onPress={() => navigation.navigate("Wallet")}>
-            <View style={styles.viewContainer}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Image
-                  style={styles.image}
-                  source={require("../../assets/profile-icon/location.png")}
+
+          <View style={styles.contentcontainer}>
+          <TouchableOpacity onPress={() => navigation.navigate("MainProfile")}>
+  <View style={styles.viewContainer}>
+    <View style={{ flex: 1 }}>
+      <Text style={styles.textContainer}>My Profile</Text>
+      <Text style={styles.subtext}>In few clicks, Update your profile</Text>
+    </View>
+    
+    <IncompleteInfoTag
+     isIncomplete={isProfileIncomplete()}
+     message="Incomplete Info"
+    color={COLORS.missingIcon} // Set the desired color
+    textColor= {COLORS.alertText}
                 />
-                <Text style={styles.textContainer}>Wallet</Text>
-              </View>
-              <Image
-                style={styles.image}
-                source={require("../../assets/profile-icon/arrow-right.png")}
-              />
-            </View>
-          </TouchableOpacity> */}
-          {/* <View style={styles.hr} />
-          <TouchableOpacity onPress={() => navigation.navigate("Notification")}>
+      <Image style={styles.image} source={icons.arrow_right} />
+  </View>
+</TouchableOpacity>
+          <View style={styles.hr} />
+          <TouchableOpacity onPress={() => navigation.navigate("Share")}>
             <View style={styles.viewContainer}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Image
-                  style={styles.image}
-                  source={require("../../assets/profile-icon/notify.png")}
-                />
-                <Text style={styles.textContainer}>Notifications</Text>
+              <View  >
+            
+                <Text style={styles.textContainer}>Share and Rewards</Text>
+                <Text style={styles.subtext}>Earn by sharing with your network</Text>
+
               </View>
-              <Image
-                style={styles.image}
-                source={require("../../assets/profile-icon/arrow-right.png")}
-              />
+              <Image style={styles.image} source={icons.arrow_right} />
+
             </View>
-          </TouchableOpacity> */}
+          </TouchableOpacity>
           <View style={styles.hr} />
           <TouchableOpacity onPress={() => navigation.navigate("Help")}>
             <View style={styles.viewContainer}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Image
-                  style={styles.image}
-                  source={require("../../assets/profile-icon/help.png")}
-                />
+              <View  >
                 <Text style={styles.textContainer}>Help & Support</Text>
+                <Text style={styles.subtext}>Stuck in something, Solve it out</Text>
+
               </View>
-              <Image
-                style={styles.image}
-                source={require("../../assets/profile-icon/arrow-right.png")}
-              />
+              <Image style={styles.image} source={icons.arrow_right} />
+
             </View>
           </TouchableOpacity>
           <View style={styles.hr} />
@@ -231,22 +212,12 @@ const Profile = ({ navigation }) => {
             onPress={() => navigation.navigate("PrivacyPolicy")}
           >
             <View style={styles.viewContainer}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Image
-                  style={styles.image}
-                  source={require("../../assets/profile-icon/shield.png")}
-                />
+              <View>
                 <Text style={styles.textContainer}>Privacy Policy</Text>
+                <Text style={styles.subtext}>Be aware from everything</Text>
+
               </View>
-              <Image
-                style={styles.image}
-                source={require("../../assets/profile-icon/arrow-right.png")}
-              />
+              <Image style={styles.image} source={icons.arrow_right} />
             </View>
           </TouchableOpacity>
           <View style={styles.hr} />
@@ -254,30 +225,78 @@ const Profile = ({ navigation }) => {
             onPress={() => navigation.navigate("TermConditions")}
           >
             <View style={styles.viewContainer}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Image
-                  style={styles.image}
-                  source={require("../../assets/profile-icon/document.png")}
-                />
+              <View >
+              
                 <Text style={styles.textContainer}>Terms & Conditions</Text>
+                <Text style={styles.subtext}>Check out our terms & conditions for details</Text>
+
               </View>
-              <Image
-                style={styles.image}
-                source={require("../../assets/profile-icon/arrow-right.png")}
-              />
+              <Image style={styles.image} source={icons.arrow_right} />
+
             </View>
           </TouchableOpacity>
           <View style={styles.hr} />
+          <TouchableOpacity
+            onPress={() => navigation.navigate("UpdateAadharVerification")}
+          >
+            <View style={styles.viewContainer}>
+              <View>
+              
+                <Text style={styles.textContainer}>KYC Details</Text>
+                <Text style={styles.subtext}>Update your KYC Details</Text>
+
+              </View>
+              <IncompleteInfoTag
+                  isIncomplete={isKYCIncomplete()}
+                  message="Attention"
+                  color={COLORS.attention} 
+                  textColor={COLORS.attention_text}
+                />
+              <Image style={styles.image} source={icons.arrow_right} />
+
+            </View>
+          </TouchableOpacity>
+          <View style={styles.hr} />
+          <TouchableOpacity
+            onPress={() => navigation.navigate("UpdateBankVerification")}
+          >
+            <View style={styles.viewContainer}>
+              <View >
+              
+                <Text style={styles.textContainer}>Bank Details</Text>
+                <Text style={styles.subtext}>Update your Bank details</Text>
+
+              </View>
+              <IncompleteInfoTag
+                  isIncomplete={isBankDetailsIncomplete()}
+                  message="Attention"
+                  color={COLORS.attention} 
+                  textColor={COLORS.attention_text}
+                />
+              <Image style={styles.image} source={icons.arrow_right} />
+
+            </View>
+          </TouchableOpacity>
+        
+          <View style={styles.hr} />
+          <TouchableOpacity
+            onPress={() => handleLogout(navigation)}
+          >
+            <View style={styles.viewContainer}>
+              <View >
+                <Text style={styles.textContainer}>Logout</Text>
+                <Text style={styles.subtext}>App Version : {version} </Text> 
+
+              </View>
+              <Image style={styles.image} source={icons.arrow_right} />
+
+            </View>
+          </TouchableOpacity>
         </View>
-        <View style={{ alignItems: "center", justifyContent: "center" }}>
+        {/* <View style={{ alignItems: "center", justifyContent: "center" }}>
           <TouchableOpacity
             style={styles.logoutContainer}
-            onPress={handleLogout}
+            onPress={logoutAndNavigate}
           >
             <Image
               style={styles.image}
@@ -289,6 +308,7 @@ const Profile = ({ navigation }) => {
               Logout
             </Text>
           </TouchableOpacity>
+        </View> */}
         </View>
       </ScrollView>
     </View>
@@ -296,9 +316,41 @@ const Profile = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+
+  contentcontainer : {
+    justifyContent:'center',
+    marginTop:40,
+    backgroundColor:COLORS.white,
+    marginHorizontal:20,
+    borderRadius:12
+  },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor:COLORS.background
+    },
+  profileContainer: {
+    marginHorizontal: 20,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    flexDirection: 'row',
+    alignItems: 'center', // Ensure the items are centered vertically
+    position: 'relative', // Add position relative
+  },
+  profileTextContainer: {
+    marginLeft: 20,
+  },
+  profileName: {
+   ...FONTS.h3,
+    color: '#fff',
+  },
+  profileEmail: {
+   ...FONTS.h5,
+    color: COLORS.white,
+  },
+  subtext :{
+  ...FONTS.h5 
+ 
   },
   hr: {
     position: "relative",
@@ -306,44 +358,60 @@ const styles = StyleSheet.create({
     borderBottomColor: "gray",
     borderBottomWidth: 1,
     opacity: 0.1,
-    marginTop: 8,
+    marginTop: 10,
     marginHorizontal: 25,
   },
   viewContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    height: 45,
-    paddingHorizontal: 25,
-    paddingVertical: 10,
-    // marginVertical: 10,
+    height: 80,
+    paddingHorizontal: 0,
+    paddingVertical: 15,
+  
+    marginHorizontal: 20,
   },
   textContainer: {
-    fontSize: 16,
-    fontWeight: "200",
-    fontFamily: "Poppins",
-    paddingHorizontal: 20,
+   ...FONTS.h4
+  },
+  missingInfoTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.missingIcon, // Use the color you want for the tag
+    borderRadius: 5,
+    marginTop:8,
+    marginLeft:30,
+    paddingHorizontal: 5,
+    marginBottom: 20, // Adjust the vertical alignment as needed
+  },
+  missingInfoIcon: {
+    fontSize: 14, // Size of the warning icon
+    marginRight: 5,
+  },
+  missingInfoText: {
+    fontSize: 10,
+    fontFamily: 'Poppins_Medium',
   },
   image: {
-    width: 24,
-    height: 24,
+    width: 18,
+    height: 18,
+    marginTop:10
   },
-  logoutContainer:{
-    marginVertical: 20,
-    paddingHorizontal: 20,
-    backgroundColor: "rgba(254, 243, 242, 1)",
-    height: 50,
-    width: "90%",
-    borderRadius: 10,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  logoutText:{
-    fontFamily: "PoppinsBold",
-    fontSize: 16,
-    color: "red",
-    marginLeft: 10,
-  }
+  // logoutContainer: {
+  //   flexDirection: "row",
+  //   justifyContent: "center",
+  //   alignItems: "center",
+  //   backgroundColor: "#F5F5F5",
+  //   width: "80%",
+  //   paddingVertical: 15,
+  //   borderRadius: 10,
+  //   marginTop: 20,
+  //   marginBottom: 30,
+  // },
+  // logoutText: {
+  //   marginLeft: 10,
+  //   fontFamily: "Poppins",
+  //   color: "black",
+  // },
 });
 
 export default Profile;

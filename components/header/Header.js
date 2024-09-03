@@ -29,12 +29,13 @@ export default Header;
 
 const styles = StyleSheet.create({
   header: {
-    height: hp(9),
+    
     flexDirection: "row",
-    backgroundColor: "#fff",
+    // backgroundColor: "#fff",
     elevation: 0.1,
     paddingHorizontal: 15,
-    paddingVertical: 20,
+    paddingVertical: 10,
+    marginVertical:10
   },
   back: {
     width: 20,
@@ -42,8 +43,9 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     flex: 1, // Let the title take up the remaining space
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: "left",
+    alignItems: "left",
+    marginLeft:20
   },
   title: {
     fontSize: 18,

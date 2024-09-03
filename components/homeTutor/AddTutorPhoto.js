@@ -11,6 +11,7 @@ import {
   StatusBar,
   BackHandler
 } from "react-native";
+import { COLORS } from "../constants";
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -27,7 +28,7 @@ import { addTutorPhoto } from "../../action/homeTutor/homeTutor";
 const AddTutorPhoto = ({ route, navigation }) => {
   const dispatch = useDispatch();
   const { id } = route.params;
-
+ console.log("ID : " + id);
   const validationSchema = Yup.object().shape({
     images: Yup.array()
       .of(
@@ -64,7 +65,7 @@ const AddTutorPhoto = ({ route, navigation }) => {
           visibilityTime: 2000,
           autoHide: true,
         });
-        navigation.navigate("Home");
+        navigation.goBack();
       } else {
         console.error("Unexpected response:", res);
       }
@@ -123,8 +124,8 @@ const AddTutorPhoto = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" />
-      <View style={{ paddingTop: 20 }}>
+          <StatusBar backgroundColor={COLORS.primary} style="light" />
+          <View style={{ paddingTop: 20 }}>
         <Header title={"Add Photos"} icon={require("../../assets/back.png")} />
       </View>
       <ScrollView
@@ -132,8 +133,9 @@ const AddTutorPhoto = ({ route, navigation }) => {
       >
         <View >
           <View style={{ flex: 1 }}>
-            <Text style={styles.textHeading}>Add Tutor Photos</Text>
-          
+            <Text style={styles.textHeading}>Add Your Yoga Asanas Photos</Text>
+            <Text style={styles.fontSize}>* Maximum 3 photos can be selected</Text>
+
             <Formik
               initialValues={{ images: [] }}
               validationSchema={validationSchema}
@@ -160,7 +162,7 @@ const AddTutorPhoto = ({ route, navigation }) => {
                             style={styles.cameraImage}
                             source={require("../../assets/camera.png")}
                           />
-                          <Text style={styles.cameraText}>Add Photo</Text>
+                          <Text style={styles.cameraText}>Add Your Yoga Asanas Photos</Text>
                         </View>
                       </TouchableOpacity>
                       {errors.images && touched.images && (
@@ -225,9 +227,14 @@ const styles = StyleSheet.create({
   },
   textHeading: {
     fontFamily: "Poppins",
-    fontSize: hp(2.5),
+    fontSize: hp(2.3),
     fontWeight: "500",
     marginVertical: 10,
+  },
+  fontSize :{
+    fontSize: hp(2),  
+    fontFamily: "Poppins",
+    color:'red'
   },
   label: {
     fontSize: hp(2),
@@ -244,7 +251,8 @@ const styles = StyleSheet.create({
     height: hp(20),
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "gray",
+    borderColor: COLORS.primary,
+    borderStyle :'dashed',
     marginTop: 10,
     backgroundColor: "#fff",
     justifyContent: "center",
@@ -260,8 +268,10 @@ const styles = StyleSheet.create({
   },
   cameraText: {
     fontSize: hp(2),
-    fontFamily: "Poppins",
+    fontFamily: "Poppins_Medium",
     textAlign: "center",
+    marginTop:12,
+    color:COLORS.primary
   },
   indicator: {
     position: "absolute",

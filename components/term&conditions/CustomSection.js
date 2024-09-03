@@ -1,6 +1,7 @@
 // components/ContentSection.js
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { COLORS } from "../constants";
 
 const ContentSection = ({ title, children }) => {
   return (
@@ -13,12 +14,12 @@ const ContentSection = ({ title, children }) => {
 
 const styles = StyleSheet.create({
   sectionContainer: {
-    paddingVertical: 8,
+    paddingVertical: 5,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: "PoppinsSemiBold",
-    color: "#5F33E1",
+    color: COLORS.primary,
     // marginVertical: 10,
   },
 });

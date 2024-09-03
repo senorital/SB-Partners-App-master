@@ -10,12 +10,19 @@ import {
   ScrollView,
   Platform,
   ActivityIndicator,
-  BackHandler
+  BackHandler,Image,ToastAndroid
 } from "react-native";
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from "react-native-responsive-screen";
+import { Ionicons } from "@expo/vector-icons";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import MapView, { Marker, Circle } from "react-native-maps";
 import Toast from "react-native-toast-message";
 import MultiSelect from "react-native-multiple-select";
+import { SelectList } from "react-native-dropdown-select-list";
+
 import CheckBox from "react-native-check-box";
 import { GOOGLE_MAPS_APIKEY } from "../../apiKey/index";
 import Header from "../header/Header";
@@ -23,17 +30,22 @@ import { Formik } from "formik";
 import * as Yup from "yup";
 import Input from "../input/Input";
 import Button from "../button/Button";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Calendar } from "react-native-calendars";
+
 import {
   addHomeTutor,
   addTutorLocation,
-  getTutorQualification,
+  getTutorQualification,addTutorPhoto,addTimeSlot
 } from "../../action/homeTutor/homeTutor";
 import { getInstructor } from "../../action/auth/auth";
 import { useDispatch } from "react-redux";
+import { COLORS } from "../constants";
+import * as ImagePicker from "expo-image-picker";
 
 const defaultLocation = {
-  latitude: 37.7749,
-  longitude: -122.4194,
+  latitude: 28.6139, // Latitude for New Delhi
+  longitude: 77.2090, // Longitude for New Delhi
   latitudeDelta: 0.05,
   longitudeDelta: 0.05,
 };
@@ -44,6 +56,28 @@ const distances = [
   { id: 3, label: "5 km", value: 5000 },
   { id: 4, label: "10 km", value: 10000 },
 ];
+
+const durationOptions = [
+  { key: "15", value: "15" },
+  { key: "20", value: "20" },
+  { key: "25", value: "25" },
+  { key: "30", value: "30" },
+  { key: "35", value: "35" },
+  { key: "40", value: "40" },
+  { key: "45", value: "45" },
+  { key: "50", value: "50" },
+  { key: "55", value: "55" },
+  { key: "60", value: "60" },
+  { key: "65", value: "65" },
+  { key: "70", value: "70" },
+  { key: "75", value: "75" },
+  { key: "80", value: "80" },
+];
+
+const serviceTypeItems=[
+  {key:'Private',value:'Private'},
+  {key:'Group',value:'Group'}
+]
 
 const specialisationItems = [
   { id: "1", name: "Hatha Yoga" },
@@ -64,8 +98,31 @@ const serviceItems = [
 ];
 
 const language = [
-  { id: "1", name: "Hindi" },
-  { id: "2", name: "English" },
+  { id: '1', name: 'English' },
+  { id: '2', name: 'Spanish' },
+  { id: '3', name: 'French' },
+  { id: '4', name: 'German' },
+  { id: '5', name: 'Hindi' },
+  { id: '6', name: 'Bengali' },
+  { id: '7', name: 'Telugu' },
+  { id: '8', name: 'Marathi' },
+  { id: '9', name: 'Tamil' },
+  { id: '10', name: 'Urdu' },
+  { id: '11', name: 'Gujarati' },
+  { id: '12', name: 'Malayalam' },
+  { id: '13', name: 'Kannada' },
+  { id: '14', name: 'Odia' },
+  { id: '15', name: 'Punjabi' },
+  { id: '16', name: 'Assamese' },
+  { id: '17', name: 'Maithili' },
+  { id: '18', name: 'Sanskrit' },
+  { id: '19', name: 'Konkani' },
+  { id: '20', name: 'Nepali' },
+  { id: '21', name: 'Manipuri' },
+  { id: '22', name: 'Sindhi' },
+  { id: '23', name: 'Dogri' },
+  { id: '24', name: 'Kashmiri' },
+  { id: '25', name: 'Bodo' },
 ];
 
 const yogaItems = [
@@ -75,7 +132,7 @@ const yogaItems = [
 ];
 
 const HomeTutor = ({ navigation }) => {
-  const totalSteps = 2;
+  const totalSteps = 4;
   const dispatch = useDispatch();
   const [step, setStep] = useState(1);
   const [location, setLocation] = useState(defaultLocation);
@@ -91,9 +148,53 @@ const HomeTutor = ({ navigation }) => {
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
   const [yogaFor,setYogaFor]=useState([]);
   const [tutorName,setTutorName]=useState('');
-
+  const [selectedItems, setSelectedItems] = useState([]);
+  const safeSelectedItems = Array.isArray(selectedItems) ? selectedItems : [];
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [serviceType,setServiceType]=useState('');
+  const [numberOfPeople, setNumberOfPeople] = useState("");
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [startTime, setStartTime] = useState(null);
+  const [endTime, setEndTime] = useState(null);
+  const [duration, setDuration] = useState("");
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const [timeSlots, setTimeSlots] = useState([]);
+  const [selectedSlots, setSelectedSlots] = useState([]);
   const handleSelectDistance = (value) => {
     setRadius(value);
+  };
+
+  const formatTime = (time) => {
+    if (!time) return "";
+    const hours = time.getHours().toString().padStart(2, "0");
+    const minutes = time.getMinutes().toString().padStart(2, "0");
+    return `${hours}:${minutes}`;
+  };
+  const theme = {
+    calendarBackground: "#DDDDDD",
+    textSectionTitleColor: COLORS.primary,
+    selectedDayTextColor: "white",
+    dayTextColor: "black",
+    textDisabledColor: "gray",
+    dotColor: "orange",
+    arrowColor: "black",
+    monthTextColor: "black",
+    textDayFontWeight: "300",
+    textMonthFontWeight: "bold",
+    textDayHeaderFontWeight: "300",
+    todayTextColor: "black",
+    textDayFontSize: 16,
+  };
+
+  const handleSlotSelect = (index) => {
+    setSelectedSlots((prevSelectedSlots) => {
+      if (prevSelectedSlots.includes(index)) {
+        return prevSelectedSlots.filter((slot) => slot !== index);
+      } else {
+        return [...prevSelectedSlots, index];
+      }
+    });
   };
 
   useEffect(() => {
@@ -116,8 +217,8 @@ const HomeTutor = ({ navigation }) => {
         setLoading(true);
         const res = await dispatch(getInstructor());
         // console.log(res.data.qualifications);
-        setBio(res.data.bio);
-        setTutorName(res.data.name);
+        setBio(res.data.instructor.bio);
+        setTutorName(res.data.instructor.name);
         const qualificationRes = await dispatch(
           getTutorQualification("HomeTutor")
         );
@@ -125,14 +226,10 @@ const HomeTutor = ({ navigation }) => {
       } catch (error) {
         console.error("Error fetching data:", error);
         const msg =
-          error.response?.data?.message ||
+          error.res?.data?.message ||
           "An error occurred. Please try again.";
-        Toast.show({
-          type: "error",
-          text1: msg,
-          visibilityTime: 2000,
-          autoHide: true,
-        });
+          ToastAndroid.show(msg, ToastAndroid.SHORT);
+
       } finally {
         setLoading(false);
       }
@@ -141,6 +238,7 @@ const HomeTutor = ({ navigation }) => {
     fetchData();
   }, [dispatch]);
 
+ 
   const specialisationIdToName = specialisationItems.reduce((acc, item) => {
     acc[item.id] = item.name;
     return acc;
@@ -193,6 +291,21 @@ const HomeTutor = ({ navigation }) => {
     );
   };
 
+  const stepThreeValidationSchema = Yup.object().shape({
+    images: Yup.array()
+      .of(
+        Yup.object().shape({
+          uri: Yup.string().required("Image is required"),
+        })
+      )
+      .min(1, "At least one image is required")
+      .max(3, "You can upload up to 3 images"),
+  });
+  
+  const stepFourValidationSchema = Yup.object().shape({
+    // Your validation for Step 4
+  });
+
   const stepOneValidationSchema = Yup.object().shape({
     // certification: Yup.string().required("Certification is required"),
     bio: Yup.string().required("Bio is required"),
@@ -200,8 +313,12 @@ const HomeTutor = ({ navigation }) => {
       1,
       "At least one specialisation is required"
     ),
+
+  
+     
     isPrivateSO: Yup.boolean(),
     isGroupSO: Yup.boolean(),
+ 
     // services: Yup.array().min(1, "At least one service offer is required"),
     language: Yup.array().min(1, "At least one language is required"),
     yogaFor:Yup.array().min(1, "At least one select field is required"),
@@ -223,7 +340,435 @@ const HomeTutor = ({ navigation }) => {
     }
   }, [radius, name, location]);
 
-  const stepTwoValidationSchema = Yup.object().shape({});
+  const stepTwoValidationSchema = Yup.object().shape({
+   
+  });
+
+
+  const pickImage = async (setFieldValue) => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      selectionLimit: 3,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    console.log(result.assets);
+    if (!result.cancelled) {
+      setFieldValue("images", result.assets);
+    }
+  };
+
+  const handleRemoveImage = (index, values, setFieldValue) => {
+    const newImages = [
+      ...values.images.slice(0, index),
+      ...values.images.slice(index + 1),
+    ];
+    setFieldValue("images", newImages);
+  };
+
+ 
+  const markedDates = {
+    [selectedDate]: {
+      selected: true,
+      selectedColor: "rgba(102, 42, 178, 1)",
+      customTextStyle: {
+        color: "orange",
+      },
+    },
+  };
+
+  const today = new Date();
+  const nextSixDays = new Date();
+  nextSixDays.setDate(today.getDate() + 2);
+
+  const minDate = today.toISOString().split("T")[0];
+  const maxDate = nextSixDays.toISOString().split("T")[0];
+
+  const handleDayPress = (day) => {
+    setSelectedDate(day.dateString);
+  };
+
+  const handleStartTimeChange = (event, selectedDate) => {
+    const currentTime = selectedDate || startTime;
+    setShowStartTimePicker(false);
+    setStartTime(currentTime);
+  };
+
+  const handleEndTimeChange = (event, selectedDate) => {
+    const currentTime = selectedDate || endTime;
+    setShowEndTimePicker(false);
+    setEndTime(currentTime);
+  };
+
+  const createTimeSlots = () => {
+    if (!startTime || !endTime || !duration) {
+     
+      ToastAndroid.show("Please select start time, end time, and duration.", ToastAndroid.SHORT);
+
+      return;
+    }
+
+    let start = new Date(startTime);
+    const end = new Date(endTime);
+    const slots = [];
+    const durationInMinutes = parseInt(duration, 10);
+
+    while (start < end) {
+      const endSlot = new Date(start.getTime() + durationInMinutes * 60000);
+      if (endSlot <= end) {
+        slots.push({ start: new Date(start), end: endSlot });
+      }
+      start = endSlot;
+    }
+
+    setTimeSlots(slots);
+  };
+  const handleServiceTypeChange = (value) => {
+    setServiceType(value);
+    if (value === "Private") {
+      setNumberOfPeople("1");
+    } else {
+      setNumberOfPeople("");
+    }
+  };
+
+  const renderStepFour = ({
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    values,
+    errors,
+    touched,
+    setFieldValue,
+    isSubmitting,
+  }) => (
+    <View style={styles.stepContainer}>
+          <ScrollView>
+        <View style={{ width: "100%" }}>
+          <Calendar
+            theme={theme}
+            markedDates={markedDates}
+            onDayPress={handleDayPress}
+            minDate={minDate}
+            maxDate={maxDate}
+          />
+        </View>
+
+        <View style={{ paddingHorizontal: 15 }}>
+          <View style={{ marginTop: 10 }}>
+            <Text style={{ fontFamily: "Poppins", fontSize: 14 }}>
+              Service Type
+            </Text>
+            <SelectList
+              setSelected={handleServiceTypeChange}
+              data={serviceTypeItems}
+              save="value"
+              placeholder="Select Service Type"
+              boxStyles={styles.dropdown}
+              fontFamily="Poppins"
+            />
+          </View>
+
+          {serviceType === "Group" && (
+            <View style={{ marginTop: 10 }}>
+              <Text style={{ fontFamily: "Poppins", fontSize: 14 }}>
+                Number of People
+              </Text>
+              <TextInput
+                   style={styles.timePickerButton}
+                value={numberOfPeople}
+                onChangeText={setNumberOfPeople}
+                placeholder="Enter number of people"
+                keyboardType="numeric"
+              />
+            </View>
+          )}
+         
+          <View style={{ marginTop: 10 }}>
+            <Text style={{ fontFamily: "Poppins", fontSize: 14 }}>
+              Start Time
+            </Text>
+            <TouchableOpacity
+              style={styles.timePickerButton}
+              onPress={() => setShowStartTimePicker(true)}
+            >
+              <Text style={styles.timePickerText}>
+                {startTime ? formatTime(startTime) : "Select Start Time"}
+              </Text>
+            </TouchableOpacity>
+            {showStartTimePicker && (
+              <DateTimePicker
+                value={startTime || new Date()}
+                mode="time"
+                display="default"
+                onChange={handleStartTimeChange}
+              />
+            )}
+          </View>
+          <View style={{ marginTop: 10 }}>
+            <Text style={{ fontFamily: "Poppins", fontSize: 14 }}>
+              End Time
+            </Text>
+            <TouchableOpacity
+              style={styles.timePickerButton}
+              onPress={() => setShowEndTimePicker(true)}
+            >
+              <Text style={styles.timePickerText}>
+                {endTime ? formatTime(endTime) : "Select End Time"}
+              </Text>
+            </TouchableOpacity>
+            {showEndTimePicker && (
+              <DateTimePicker
+                value={endTime || new Date()}
+                mode="time"
+                display="default"
+                onChange={handleEndTimeChange}
+              />
+            )}
+          </View>
+          <View style={{ marginTop: 10 }}>
+            <Text style={{ fontFamily: "Poppins", fontSize: 14 }}>
+              Duration (minutes)
+            </Text>
+            <SelectList
+              setSelected={setDuration}
+              data={durationOptions}
+              save="value"
+              placeholder="Select Duration (minutes)"
+              boxStyles={styles.dropdown}
+              fontFamily="Poppins"
+            />
+          </View>
+          
+
+          {timeSlots.length > 0 && (
+            <View style={styles.timeSlotList}>
+              {timeSlots.map((slot, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.timeSlotItem,
+                    selectedSlots.includes(index)
+                      ? styles.selectedSlot
+                      : styles.unselectedSlot,
+                  ]}
+                  onPress={() => handleSlotSelect(index)}
+                >
+                  <Text
+                    style={
+                      selectedSlots.includes(index)
+                        ? styles.selectedSlotText
+                        : styles.unselectedSlotText
+                    }
+                  >
+                    {formatTime(slot.start)} - {formatTime(slot.end)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          <Button
+            title={
+              isSubmitting ? (
+                <ActivityIndicator
+                  size="small"
+                  color="#ffffff"
+                  style={styles.indicator}
+                />
+              ) : (
+                "Create Time Slots"
+              )
+            }
+            onPress={handleSubmit}
+          />
+        </View>
+      </ScrollView>
+    </View>
+  );
+
+
+
+  const renderStepTwo = ({
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    values,
+    errors,
+    touched,
+    isSubmitting,
+  }) => (
+    <View style={[styles.stepContainer]}>
+      <View style={[styles.autocompleteContainer]}>
+        <Text style={styles.label}>Location</Text>
+        <GooglePlacesAutocomplete
+          placeholder="Search by location"
+          onPress={handleLocationSelect}
+          query={{
+            key: GOOGLE_MAPS_APIKEY,
+            language: "en",
+          }}
+          fetchDetails={true}
+          textInputProps={{
+            style: {
+              borderColor: touched.location && errors.location ? "red" : "#000",
+              borderWidth: 1,
+              height: 40,
+              borderRadius: 5,
+              paddingHorizontal: 10,
+              width: "100%",
+            },
+          }}
+          styles={{
+            container: { flex: 0 },
+            listView: { zIndex: 1000 },
+          }}
+        />
+      </View>
+      {touched.location && errors.location && (
+        <Text style={styles.error}>{errors.location}</Text>
+      )}
+
+      {location && (
+        <View>
+          <MapView style={styles.map} region={location}>
+            <Marker coordinate={location} />
+            <Circle
+              center={location}
+              radius={radius}
+              fillColor="rgba(135,206,250,0.5)"
+              strokeColor="rgba(135,206,250,1)"
+            />
+          </MapView>
+        </View>
+      )}
+      <FlatList
+        data={distances}
+        keyExtractor={(item) => item.id.toString()}
+        horizontal
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[
+              styles.distanceButton,
+              item.value === radius
+                ? styles.selectedDistanceButton
+                : styles.unselectedDistanceButton,
+            ]}
+            onPress={() => handleSelectDistance(item.value)}
+          >
+            <Text
+              style={[
+                styles.distanceButtonText,
+                item.value === radius
+                  ? styles.selectedDistanceButtonText
+                  : styles.unselectedDistanceButtonText,
+              ]}
+            >
+              {item.label}
+            </Text>
+          </TouchableOpacity>
+        )}
+        contentContainerStyle={styles.distanceList}
+      />
+<View style={{flex: 1}}>
+<Button
+        title={
+          isSubmitting ? (
+            <ActivityIndicator
+              size="small"
+              color="#ffffff"
+              style={styles.indicator}
+            />
+          ) : (
+            "Next"
+          )
+        }
+        onPress={handleSubmit}
+
+      />
+      </View>
+    </View>
+  );
+
+
+  const renderStepThree = ({
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    values,
+    setFieldValue,
+    errors,
+    touched,
+    isSubmitting,
+  }) => (
+    <View style={styles.stepContainer}>
+      <View style={styles.autocompleteContainer}>
+        <Text style={styles.label}>Add Tutor Photos</Text>
+        <Text style={styles.fontSize}>* Maximum 3 photos can be selected</Text>
+  
+        <View>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => pickImage(setFieldValue)}
+            style={styles.cameraContainer}
+          >
+            <View style={styles.cameraButton}>
+              <Image
+                style={styles.cameraImage}
+                source={require("../../assets/camera.png")}
+              />
+              <Text style={styles.cameraText}>Add Photo</Text>
+            </View>
+          </TouchableOpacity>
+          {errors.images && touched.images && (
+            <Text style={styles.errorText}>{errors.images}</Text>
+          )}
+        </View>
+        <View
+          style={{ width: wp(90), marginTop: 10, marginRight: 10 }}
+        >
+          <FlatList
+            data={values.images}
+            horizontal={true}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({ item, index }) => (
+              <TouchableOpacity
+                onPress={() =>
+                  handleRemoveImage(index, values, setFieldValue)
+                }
+              >
+                <Image
+                  source={{ uri: item.uri }}
+                  style={{
+                    width: wp(40),
+                    height: hp(20),
+                    borderRadius: 5,
+                    marginHorizontal: 5,
+                  }}
+                />
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </View>
+  
+      <Button
+        title={
+          isSubmitting ? (
+            <ActivityIndicator
+              size="small"
+              color="#ffffff"
+              style={styles.indicator}
+            />
+          ) : (
+            "Next"
+          )
+        }
+        onPress={handleSubmit}
+      />
+    </View>
+  );
 
   const renderStepOne = ({
     handleChange,
@@ -234,9 +779,15 @@ const HomeTutor = ({ navigation }) => {
     touched,
     setFieldValue,
     isSubmitting,
-  }) => (
+    
+  }) => {
+    console.log('Rendering Step One. isSubmitting:', isSubmitting);
+
+    return (
+      
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
       <View style={styles.stepContainer}>
+        
         <Input
           label="Certification / Qualification"
           value={values.certification}
@@ -261,59 +812,111 @@ const HomeTutor = ({ navigation }) => {
         <Text style={styles.label}>
           Specialisations <Text style={{ color: "red" }}>*</Text>
         </Text>
-
         <MultiSelect
-          hideTags
-          items={specialisationItems}
-          uniqueKey="id"
-          onSelectedItemsChange={(val) => {
-            setSelectedSpecialisations(val);
-            setFieldValue("specialisations", val);
+  hideTags
+  items={specialisationItems}
+  uniqueKey="id"
+  onSelectedItemsChange={(val) => {
+    setSelectedSpecialisations(val);
+    setFieldValue("specialisations", val);
+  }}
+  selectedItems={selectedSpecialisations}
+  selectText="Select Your Specialisation"
+  searchInputPlaceholderText="Search Items..."
+  altFontFamily="Poppins"
+  tagRemoveIconColor="#CCC"
+  tagBorderColor="#CCC"
+  tagTextColor="#CCC"
+  selectedItemTextColor="#CCC"
+  selectedItemIconColor="#CCC"
+  itemTextColor="#000"
+  displayKey="name"
+  searchInputStyle={{ color: '#000', fontFamily: 'Poppins', paddingHorizontal: 0 }}
+  submitButtonColor="#000"
+  submitButtonText=""
+  hideSubmitButton={true}
+  styleInputGroup={styles.styleInputGroup}
+  styleDropdownMenuSubsection={styles.styleDropdownMenuSubsection}
+  styleDropdownMenu={styles.styleDropdownMenu}
+  styleMainWrapper={styles.styleMainWrapper}
+  flatListProps={{
+    renderItem: ({ item }) => {
+      const isSelected = selectedSpecialisations.includes(item.id);
+      return (
+        <TouchableOpacity
+          style={[
+            { padding: 10, margin: 2, borderRadius: 10 },
+            { backgroundColor: isSelected ? '#EEEEEE' : '#fff' }
+          ]}
+          onPress={() => {
+            const newSelectedItems = isSelected
+              ? selectedSpecialisations.filter(id => id !== item.id)
+              : [...selectedSpecialisations, item.id];
+            setSelectedSpecialisations(newSelectedItems);
+            setFieldValue('specialisations', newSelectedItems);
           }}
-          selectedItems={selectedSpecialisations}
-          selectText="Pick Items"
-          searchInputPlaceholderText="Search Items..."
-          altFontFamily="Poppins"
-          tagRemoveIconColor="#CCC"
-          tagBorderColor="#CCC"
-          tagTextColor="#CCC"
-          selectedItemTextColor="#CCC"
-          selectedItemIconColor="#CCC"
-          itemTextColor="#000"
-          displayKey="name"
-          searchInputStyle={{ color: "#CCC" }}
-          submitButtonColor="#CCC"
-          submitButtonText="Add"
-          styleInputGroup={{
-            padding: 8,
+        >
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={[
+              styles.itemText,
+              { color: isSelected ? COLORS.primary : '#000', fontFamily: 'Poppins' }
+            ]}>
+              {item.name}
+            </Text>
+            {isSelected && (
+              <Ionicons name="checkmark" size={20} color="#000" />
+            )}
+          </View>
+        </TouchableOpacity>
+      );
+    }
+  
+  }}
+  
+/>
+
+
+{/* Selected Specialisations Display */}
+<View style={styles.tabsContainer}>
+  {selectedSpecialisations.map(itemId => {
+    const item = specialisationItems.find(i => i.id === itemId);
+    if (!item) return null;
+    return (
+      <View key={item.id} style={styles.tab}>
+        <Text style={styles.tabText}>{item.name}</Text>
+        <TouchableOpacity
+          style={styles.removeButton}
+          onPress={() => {
+            const updatedItems = selectedSpecialisations.filter(id => id !== itemId);
+            setSelectedSpecialisations(updatedItems);
+            setFieldValue('specialisations', updatedItems);
           }}
-          styleDropdownMenu={{ columnGap: 8 }}
-          styleMainWrapper={{
-            borderWidth: 1,
-            borderColor: "gray",
-            borderRadius: 10,
-            paddingHorizontal: 10,
-            // paddingTop: 10,
-          }}
-        />
-        {touched.specialisations && errors.specialisations && (
+        >
+          <Text style={styles.removeButtonText}>×</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  })}
+</View>
+{touched.specialisations && errors.specialisations && (
           <Text style={styles.error}>{errors.specialisations}</Text>
         )}
-
      
        
         <View style={{ paddingVertical: 10 }}>
         <Text style={styles.label}>
-          Service Offered <Text style={{ color: "red" }}>*</Text>
+          Service You Offered <Text style={{ color: "red" }}>*</Text>
         </Text>
               <View style={{ flexDirection: "row" }}>
                 <View style={[styles.switchContainer, { marginRight: 20 }]}>
                   <CheckBox
                     isChecked={values.isPrivateSO}
                     onClick={() => setFieldValue("isPrivateSO", !values.isPrivateSO)}
-                   
+                    checkBoxColor={COLORS.unchecked} // Color when unchecked
+                    checkedCheckBoxColor={COLORS.primary} // Color when checked
+                 
                   />
-                  <Text style={[styles.label,{marginLeft:5}]}>Individual </Text>
+                  <Text style={[{marginLeft:5,color:COLORS.black,fontFamily:'Poppins'}]}>Individual </Text>
                 </View>
                 <View style={styles.switchContainer}>
                   <CheckBox
@@ -321,9 +924,11 @@ const HomeTutor = ({ navigation }) => {
                     onClick={() =>
                       setFieldValue("isGroupSO", !values.isGroupSO)
                     }
-                   
+                    checkBoxColor={COLORS.unchecked} // Color when unchecked
+                    checkedCheckBoxColor={COLORS.primary} // Color when checked
+                 
                   />
-                  <Text style={[styles.label,{marginLeft:5}]}>Group</Text>
+                  <Text style={[{marginLeft:5,fontFamily:'Poppins'}]}>Group</Text>
                 </View>
               </View>
             </View>
@@ -399,8 +1004,8 @@ const HomeTutor = ({ navigation }) => {
             setFieldValue("language", val);
           }}
           selectedItems={selectedLanguage}
-          selectText="Pick Languages"
-          searchInputPlaceholderText="Search Languages..."
+          selectText="Select Your Language"
+          searchInputPlaceholderText="Search Items..."
           altFontFamily="Poppins"
           tagRemoveIconColor="#CCC"
           tagBorderColor="#CCC"
@@ -409,27 +1014,75 @@ const HomeTutor = ({ navigation }) => {
           selectedItemIconColor="#CCC"
           itemTextColor="#000"
           displayKey="name"
-          searchInputStyle={{ color: "#CCC" }}
-          submitButtonColor="#CCC"
-          submitButtonText="Submit"
-          styleInputGroup={{
-            padding: 8,
-          }}
-          styleDropdownMenu={{ columnGap: 8 }}
-          styleMainWrapper={{
-            borderWidth: 1,
-            borderColor: "gray",
-            borderRadius: 10,
-            paddingHorizontal: 10,
-            // paddingTop: 10,
+          searchInputStyle={{ color: '#000', fontFamily: 'Poppins', paddingHorizontal: 0 }}
+          submitButtonColor="#000"
+          submitButtonText=""
+          hideSubmitButton={true}
+          styleInputGroup={styles.styleInputGroup}
+          styleDropdownMenuSubsection={styles.styleDropdownMenuSubsection}
+          styleDropdownMenu={styles.styleDropdownMenu}
+          styleMainWrapper={styles.styleMainWrapper}
+          flatListProps={{
+            renderItem: ({ item }) => {
+              const isSelected = selectedLanguage.includes(item.id);
+              return (
+                <TouchableOpacity
+                  style={[
+                    { padding: 10, margin: 2, borderRadius: 10 },
+                    { backgroundColor: isSelected ? '#EEEEEE' : '#fff' }
+                  ]}
+                  onPress={() => {
+                    const newSelectedItems = isSelected
+                      ? selectedLanguage.filter(id => id !== item.id)
+                      : [...selectedLanguage, item.id];
+                    setSelectedLanguage(newSelectedItems);
+                    setFieldValue('language', newSelectedItems);
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={[
+                      styles.itemText,
+                      { color: isSelected ? COLORS.primary : '#000', fontFamily: 'Poppins' }
+                    ]}>
+                      {item.name}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={20} color="#000" />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            }
           }}
         />
+       {/* Selected Languages Display */}
+     <View style={styles.tabsContainer}>
+      {selectedLanguage.map(itemId => {
+       const item = language.find(i => i.id === itemId);
+       if (!item) return null;
+        return (
+      <View key={item.id} style={styles.tab}>
+        <Text style={styles.tabText}>{item.name}</Text>
+        <TouchableOpacity
+          style={styles.removeButton}
+          onPress={() => {
+            const updatedItems = selectedLanguage.filter(id => id !== itemId);
+            setSelectedLanguage(updatedItems);
+            setFieldValue('language', updatedItems);
+          }}
+        >
+          <Text style={styles.removeButtonText}>×</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  })}
+</View>
         {touched.language && errors.language && (
           <Text style={styles.error}>{errors.language}</Text>
         )}
 
         <Text style={[styles.label, { marginTop: 10 }]}>
-          Yoga For <Text style={{ color: "red" }}>*</Text>
+          Giving Yoga Sessions For <Text style={{ color: "red" }}>*</Text>
         </Text>
         <MultiSelect
           hideTags
@@ -440,8 +1093,8 @@ const HomeTutor = ({ navigation }) => {
             setFieldValue("yogaFor", val);
           }}
           selectedItems={yogaFor}
-          selectText="Pick Select"
-          searchInputPlaceholderText="Search..."
+          selectText="Select Your Yoga Sessions For"
+          searchInputPlaceholderText="Search Items..."
           altFontFamily="Poppins"
           tagRemoveIconColor="#CCC"
           tagBorderColor="#CCC"
@@ -450,21 +1103,69 @@ const HomeTutor = ({ navigation }) => {
           selectedItemIconColor="#CCC"
           itemTextColor="#000"
           displayKey="name"
-          searchInputStyle={{ color: "#CCC" }}
-          submitButtonColor="#CCC"
-          submitButtonText="Submit"
-          styleInputGroup={{
-            padding: 8,
-          }}
-          styleDropdownMenu={{ columnGap: 8 }}
-          styleMainWrapper={{
-            borderWidth: 1,
-            borderColor: "gray",
-            borderRadius: 10,
-            paddingHorizontal: 10,
-            // paddingTop: 10,
+          searchInputStyle={{ color: '#000', fontFamily: 'Poppins', paddingHorizontal: 0 }}
+          submitButtonColor="#000"
+          submitButtonText=""
+          hideSubmitButton={true}
+          styleInputGroup={styles.styleInputGroup}
+          styleDropdownMenuSubsection={styles.styleDropdownMenuSubsection}
+          styleDropdownMenu={styles.styleDropdownMenu}
+          styleMainWrapper={styles.styleMainWrapper}
+          flatListProps={{
+            renderItem: ({ item }) => {
+              const isSelected = yogaFor.includes(item.id);
+              return (
+                <TouchableOpacity
+                  style={[
+                    { padding: 10, margin: 2, borderRadius: 10 },
+                    { backgroundColor: isSelected ? '#EEEEEE' : '#fff' }
+                  ]}
+                  onPress={() => {
+                    const newSelectedItems = isSelected
+                      ? yogaFor.filter(id => id !== item.id)
+                      : [...yogaFor, item.id];
+                    setYogaFor(newSelectedItems);
+                    setFieldValue('yogaFor', newSelectedItems);
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={[
+                      styles.itemText,
+                      { color: isSelected ? COLORS.primary : '#000', fontFamily: 'Poppins' }
+                    ]}>
+                      {item.name}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={20} color="#000" />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            }
           }}
         />
+     {/* Selected Yoga For Display */}
+<View style={styles.tabsContainer}>
+  {yogaFor.map(itemId => {
+    const item = yogaItems.find(i => i.id === itemId);
+    if (!item) return null;
+    return (
+      <View key={item.id} style={styles.tab}>
+        <Text style={styles.tabText}>{item.name}</Text>
+        <TouchableOpacity
+          style={styles.removeButton}
+          onPress={() => {
+            const updatedItems = yogaFor.filter(id => id !== itemId);
+            setYogaFor(updatedItems);
+            setFieldValue('yogaFor', updatedItems);
+          }}
+        >
+          <Text style={styles.removeButtonText}>×</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  })}
+</View>
         {touched.yogaFor && errors.yogaFor && (
           <Text style={styles.error}>{errors.yogaFor}</Text>
         )}
@@ -472,7 +1173,7 @@ const HomeTutor = ({ navigation }) => {
 
         <Button
           title={
-            isSubmitting ? (
+             isSubmitting ? (
               <ActivityIndicator
                 size="small"
                 color="#ffffff"
@@ -486,114 +1187,15 @@ const HomeTutor = ({ navigation }) => {
         />
       </View>
     </ScrollView>
-  );
-
-  const renderStepTwo = ({
-    handleChange,
-    handleBlur,
-    handleSubmit,
-    values,
-    errors,
-    touched,
-    isSubmitting,
-  }) => (
-    <View style={styles.stepContainer}>
-      <View style={styles.autocompleteContainer}>
-        <Text style={styles.label}>Location</Text>
-        <GooglePlacesAutocomplete
-          placeholder="Search by location"
-          onPress={handleLocationSelect}
-          query={{
-            key: GOOGLE_MAPS_APIKEY,
-            language: "en",
-          }}
-          fetchDetails={true}
-          textInputProps={{
-            style: {
-              borderColor: touched.location && errors.location ? "red" : "#000",
-              borderWidth: 1,
-              height: 40,
-              borderRadius: 5,
-              paddingHorizontal: 10,
-              width: "100%",
-            },
-          }}
-          styles={{
-            container: { flex: 0 },
-            listView: { zIndex: 1000 },
-          }}
-        />
-      </View>
-      {touched.location && errors.location && (
-        <Text style={styles.error}>{errors.location}</Text>
-      )}
-
-      {location && (
-        <View>
-          <MapView style={styles.map} region={location}>
-            <Marker coordinate={location} />
-            <Circle
-              center={location}
-              radius={radius}
-              fillColor="rgba(135,206,250,0.5)"
-              strokeColor="rgba(135,206,250,1)"
-            />
-          </MapView>
-        </View>
-      )}
-      <FlatList
-        data={distances}
-        keyExtractor={(item) => item.id.toString()}
-        horizontal
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.distanceButton,
-              item.value === radius
-                ? styles.selectedDistanceButton
-                : styles.unselectedDistanceButton,
-            ]}
-            onPress={() => handleSelectDistance(item.value)}
-          >
-            <Text
-              style={[
-                styles.distanceButtonText,
-                item.value === radius
-                  ? styles.selectedDistanceButtonText
-                  : styles.unselectedDistanceButtonText,
-              ]}
-            >
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        )}
-        contentContainerStyle={styles.distanceList}
-      />
-      <Button
-        title={
-          isSubmitting ? (
-            <ActivityIndicator
-              size="small"
-              color="#ffffff"
-              style={styles.indicator}
-            />
-          ) : (
-            "Submit"
-          )
-        }
-        onPress={handleSubmit}
-      />
-    </View>
-  );
-
+  )};
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : null}
       style={styles.container}
     >
-      <StatusBar translucent backgroundColor="transparent" />
-      <View style={{ paddingTop: 15 }}>
-        <Header title={"Home Tutor"} icon={require("../../assets/back.png")} />
+      <StatusBar backgroundColor={COLORS.primary} style="light" />
+      <View style={{ paddingTop: 20 }}>
+        <Header title={"Add Your New Listing"} icon={require("../../assets/back.png")} />
       </View>
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -604,6 +1206,7 @@ const HomeTutor = ({ navigation }) => {
           <View style={{ paddingHorizontal: 20 }}>{renderProgressBar()}</View>
           <Formik
             initialValues={{
+            
               certification: certification,
               bio: bio,
               specialisations: selectedSpecialisations,
@@ -619,21 +1222,52 @@ const HomeTutor = ({ navigation }) => {
               isGroupSO: false,
             }}
             validationSchema={
-              step === 1 ? stepOneValidationSchema : stepTwoValidationSchema
-            }
-            onSubmit={(values, { setSubmitting }) => {
+              
+                step === 1 ? stepOneValidationSchema
+                  : step === 2 ? stepTwoValidationSchema
+                  : step === 3 ? stepThreeValidationSchema
+                  : stepFourValidationSchema
+              }            
+            onSubmit={async (values, { setSubmitting }) => {
+              
               if (step === 1) {
                 // Submit Step 1 data
-                if (!values.isPrivateSO && !values.isGroupSO) {
-        Toast.show({
-          type: "error",
-          text1: "Please select at least one service offered.",
-          visibilityTime: 2000,
-          autoHide: true,
-        });
+              
+
+        if (!values.isPrivateSO && !values.isGroupSO) {
+        ToastAndroid.show("Please select at least one service offered.", ToastAndroid.SHORT);
+    
+       
         return;
       }
-                const specialisations = values.specialisations.map(
+       if (values.isPrivateSO && !values.pricePerIndividualClass) {
+ 
+      ToastAndroid.show('Please enter price per individual class.', ToastAndroid.SHORT);
+
+    
+      return;
+    } 
+    if (values.isPrivateSO && !values.pricePerMonthlyIndividualClass) {
+      ToastAndroid.show("Please enter price per Monthly", ToastAndroid.SHORT);
+
+    
+      return;
+    }
+    if (values.isGroupSO && !values.pricePerGroupClass) {
+     
+      ToastAndroid.show("Please enter price per individual class.", ToastAndroid.SHORT);
+
+    
+      return;
+    } 
+    if (values.isGroupSO && !values.pricePerMonthlyGroupClass) {
+
+      ToastAndroid.show("Please enter price per Monthly", ToastAndroid.SHORT);
+
+    
+      return;
+    }
+     const specialisations = values.specialisations.map(
                   (id) => specialisationIdToName[id]
                 );
 
@@ -690,22 +1324,30 @@ const HomeTutor = ({ navigation }) => {
                   .then((response) => {
                     console.log(response);
                     setTutorId(response.data.homeTutorId); // assuming response.data.id is the new tutor's ID
-                    Toast.show({
-                      type: "success",
-                      text1: res.message,
-                      visibilityTime: 2000,
-                      autoHide: true,
-                    });
-                    setStep(2); 
+                    ToastAndroid.show(response.message, ToastAndroid.SHORT);
+
+                    setStep(2);
                     setSubmitting(false);
+ 
                   })
                   .catch((error) => {
                     console.error("Error adding home tutor:", error);
                     setSubmitting(false);
                   });
-              } else {
+              }  else if (step === 2)  {
                 // Submit Step 2 data
+                if (!name) {
+                 
+                  ToastAndroid.show("Service area is required", ToastAndroid.SHORT);
 
+                  return;
+                }
+            
+                if (!radius) {
+                  ToastAndroid.show("Distance is required", ToastAndroid.SHORT);
+
+                  return;
+                }
                 const locationData = {
                   id: tutorId,
                   latitude: String(location.latitude),
@@ -718,28 +1360,103 @@ const HomeTutor = ({ navigation }) => {
                 dispatch(addTutorLocation(locationData))
                   .then((res) => {
                     console.log(res);
-                    Toast.show({
-                      type: "success",
-                      text1: res.message,
-                      visibilityTime: 2000,
-                      autoHide: true,
-                    });
+                    ToastAndroid.show(res.message, ToastAndroid.SHORT);
 
+                    setStep(3);
                     setSubmitting(false);
-                    navigation.navigate("Home");
+                    // navigation.navigate("Home");
                   })
                   .catch((error) => {
                     console.error("Error adding tutor location:", error);
-                    Toast.show({
-                      type: "error",
-                      text1: "An error occurred. Please try again.",
-                      visibilityTime: 2000,
-                      autoHide: true,
-                    });
+                
+                    ToastAndroid.show("An error occurred. Please try again.", ToastAndroid.SHORT);
+
                     setSubmitting(false);
                   });
+              }else if (step === 3) {
+              
+                const formData = new FormData();
+                formData.append("id", tutorId);
+        
+                values.images.forEach((img, index) => {
+                  formData.append("hTutorImages", {
+                    uri: img.uri,
+                    name: `image_${index}.jpg`,
+                    type: "image/jpeg",
+                  });
+                });
+        
+                console.log("FormData:", formData);
+        
+                const res = await dispatch(addTutorPhoto(formData, tutorId)) .then((res) => {
+                console.log("photo response:", res);
+        
+                if (res && res.success) {
+                  ToastAndroid.show(res.message, ToastAndroid.SHORT);
+
+              } else {
+                console.error("Unexpected response:", res);
               }
-            }}
+                setStep(4);
+               setSubmitting(false);
+                  })
+                  .catch((error) => {
+                    const msg = error.res.message;
+                    ToastAndroid.show(msg, ToastAndroid.SHORT);
+
+                    setSubmitting(false);
+                  });
+            
+            }else if (step === 4) {
+              const id = tutorId;
+              createTimeSlots();
+              if (selectedSlots.length === 0) {
+          
+                ToastAndroid.show("Please select at least one time slot.", ToastAndroid.SHORT);
+
+                return;
+              }
+              
+              const formattedTimeSlots = selectedSlots.map((index) => {
+                const slot = timeSlots[index];
+                const startTime = formatTime(slot.start);
+                const endTime = formatTime(slot.end);
+                return {
+                  serviceType,
+                  noOfPeople: serviceType === "Private" ? 1 : numberOfPeople,
+                  time: `${startTime}-${endTime}`
+                };
+              });
+        
+              const body = {
+                date: selectedDate,
+                slotes: formattedTimeSlots,
+                id : tutorId,
+              };
+        
+              console.log(body)
+        
+              const res = await dispatch(addTimeSlot(body)).then((res) => {
+                console.log(res);
+                ToastAndroid.show(res.message, ToastAndroid.SHORT);
+
+                
+                setSubmitting(false);
+                 navigation.navigate("Home");
+
+              })
+              .catch((error) => {
+                console.error("Error adding tutor timslot:", error.message);
+              
+                ToastAndroid.show("An error occurred. Please try again.", ToastAndroid.SHORT);
+
+                setSubmitting(false);
+              });
+              
+            }
+        
+          }
+            }
           >
             {({
               handleChange,
@@ -752,7 +1469,7 @@ const HomeTutor = ({ navigation }) => {
               isSubmitting,
             }) => (
               <View style={{ flex: 1 }}>
-                {step === 1
+                     {step === 1
                   ? renderStepOne({
                       handleChange,
                       handleBlur,
@@ -763,7 +1480,28 @@ const HomeTutor = ({ navigation }) => {
                       setFieldValue,
                       isSubmitting,
                     })
-                  : renderStepTwo({
+                  : step === 2
+                  ? renderStepTwo({
+                      handleChange,
+                      handleBlur,
+                      handleSubmit,
+                      values,
+                      errors,
+                      touched,
+                      isSubmitting,
+                    })
+                  : step === 3
+                  ? renderStepThree({
+                      handleChange,
+                      handleBlur,
+                      handleSubmit,
+                      setFieldValue,
+                      values,
+                      errors,
+                      touched,
+                      isSubmitting,
+                    })
+                  : renderStepFour({
                       handleChange,
                       handleBlur,
                       handleSubmit,
@@ -781,6 +1519,50 @@ const HomeTutor = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  tabsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 10
+  },
+  tab: {
+    backgroundColor: COLORS.background,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginRight: 5,
+    marginTop:3,
+    marginBottom: 5,
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  tabText: {
+    color: '#000',
+    fontSize: 13,
+    fontFamily:'Poppins'
+  },
+  removeButton: {
+    marginLeft: 5,
+    padding: 5,
+    marginTop:-5,
+    borderRadius: 10,
+  },
+  removeButtonText: {
+    fontSize: 16,
+    color: '#000'
+  },
+  styleDropdownMenu: {
+    borderWidth: 0, // Remove underline from dropdown menu
+    // paddingVertical:10,
+
+  },
+  styleInputGroup: {
+    borderWidth: 0, // Remove underline from input group
+    borderBottomWidth : 0,
+    paddingVertical:10,
+   marginLeft:0,
+  //  padding:8,
+   paddingHorizontal :0
+  },
   container: {
     flex: 1,
     backgroundColor: "#fff",
@@ -790,8 +1572,15 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontFamily: "Poppins",
+    fontFamily: "Poppins_Medium",
     fontWeight: "600",
+    marginBottom:7,
+    color:COLORS.primary
+  },
+  fontSize :{
+    fontSize: hp(1.9),  
+    fontFamily: "Poppins",
+    color:'red'
   },
   input: {
     // borderColor: "#000",
@@ -814,6 +1603,19 @@ const styles = StyleSheet.create({
     zIndex: 1,
     width: "100%",
     marginVertical: 10,
+  },
+  styleDropdownMenuSubsection: {
+    borderWidth: 0, // Remove underline from dropdown menu subsection
+    borderBottomWidth : 0,
+    paddingVertical:10,
+    paddingHorizontal:0
+  },
+  styleMainWrapper: {
+    borderWidth: 1,
+    borderColor: COLORS.icon_background,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical:0
   },
   map: {
     width: "100%",
@@ -849,7 +1651,7 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   distanceList: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 0,
     justifyContent: "space-between",
   },
   indicator: {
@@ -860,17 +1662,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 5,
   },
   progressBar: {
     backgroundColor: "#ccc",
-    height: 5,
+    height: 3,
     flex: 1,
-    marginHorizontal: 2,
+    width:120,
+    marginHorizontal: 8,
     borderRadius: 5,
   },
   progressBarActive: {
-    backgroundColor: "#5F33E1",
+    backgroundColor: COLORS.primary,
   },
   loadingContainer: {
     flex: 1,
@@ -880,7 +1683,77 @@ const styles = StyleSheet.create({
   switchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
+    marginTop:10
+  },
+  cameraContainer: {
+    width: wp(90),
+    height: hp(20),
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    borderStyle :'dashed',
+    marginTop: 10,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cameraButton: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cameraImage: {
+    width: 30,
+    height: 30,
+  },
+  cameraText: {
+    fontSize: hp(2),
+    fontFamily: "Poppins_Medium",
+    textAlign: "center",
+    marginTop:12,
+    color:COLORS.primary
+  },
+  timePickerButton: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#000",
+    borderRadius: 10,
+    padding: 10,
+    marginVertical: 5,
+  },
+  timePickerText: {
+    color: "#333",
+    fontSize: 16,
+  },
+  dropdown: {
+    marginVertical: 5,
+  },
+  timeSlotList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginVertical: 20,
+  },
+  timeSlotItem: {
+    width: "30%",
+    marginVertical: 5,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 5,
+  },
+  selectedSlot: {
+    backgroundColor: "rgba(102, 42, 178, 1)",
+  },
+  unselectedSlot: {
+    backgroundColor: "#fff",
+    borderColor: "gray",
+    borderWidth: 1,
+  },
+  selectedSlotText: {
+    color: "white",
+  },
+  unselectedSlotText: {
+    color: "black",
   },
 });
 

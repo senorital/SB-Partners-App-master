@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
+import { COLORS } from "../constants";
 
 const Input = ({
   label,
@@ -8,7 +9,7 @@ const Input = ({
   password,
   multiline,
   numberOfLines,
-  placeholderTextColor = "#000",
+  placeholderTextColor = COLORS.grey,
   isRequired = false,
   onFocus = () => {},
   ...props
@@ -45,8 +46,11 @@ const Input = ({
         style={[
           styles.inputContainer,
           {
-            borderColor: error ? "red" : isFocused ? "gray" : "gray",
+            borderColor: error ? "red" : isFocused ? COLORS.icon_background : COLORS.icon_background,
+            borderWidth:1,
             alignItems: "center",
+            fontFamily:'Poppins_Medium',
+            backgroundColor:COLORS.white
           },
         ]}
       >
@@ -82,17 +86,20 @@ const Input = ({
 const styles = StyleSheet.create({
   label: {
     fontSize: 14,
-    fontFamily: "Poppins",
-    fontWeight: '600'
+    fontFamily: "Poppins_Medium",
+    fontWeight: '600',
+    color:COLORS.primary,
+    marginBottom:5
   },
   inputContainer: {
-    backgroundColor: "#fff",
+    // backgroundColor: "#fff",
     flexDirection: "row",
     borderRadius: 10,
-    paddingHorizontal: 15,
+    paddingHorizontal: 10,
     borderWidth: 1,
     fontFamily: "Poppins",
     color: '#000',
+    // textAlignVertical:'top'
   },
   input: {
     flexGrow: 1,

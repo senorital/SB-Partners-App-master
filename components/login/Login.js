@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Text,
   View,
@@ -6,6 +6,9 @@ import {
   StatusBar,
   ScrollView,
   ActivityIndicator,
+  TouchableOpacity,
+  BackHandler,
+
 } from "react-native";
 import {
   widthPercentageToDP as wp,
@@ -13,22 +16,26 @@ import {
 } from "react-native-responsive-screen";
 import PhoneInput from "react-native-phone-number-input";
 import { useDispatch } from "react-redux";
-import Button from "../button/Button";
 import Input from "../input/Input";
-import { login, register } from "../../action/auth/auth";
+import { login, loginEmail } from "../../action/auth/auth";
+import * as Location from 'expo-location';
+import { setLocationAddress, clearLocationAddress } from "../../action/locationActions/locationActions";
+import DenyLocation from "./DenyLocation";
+import { COLORS } from "../constants";
+import Button from "../button/Button";
+import { useFocusEffect } from "@react-navigation/native";
 
 const Login = ({ navigation }) => {
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [location, setLocation] = useState(null);
   const [mobileNumber, setMobileNumber] = useState("");
   const [mobileNumberError, setMobileNumberError] = useState("");
-  const [inputs, setInputs] = useState({
-    name: "",
-    email: "",
-  });
+  const [region, setRegion] = useState("");
+  const [inputs, setInputs] = useState({ email: "" });
   const [errors, setErrors] = useState({});
   const [showEmail, setShowEmail] = useState(false);
-  const [showName,setShowName]=useState(false);
 
   const handleOnchange = (text, input) => {
     setInputs((prevState) => ({ ...prevState, [input]: text }));
@@ -38,9 +45,87 @@ const Login = ({ navigation }) => {
     setErrors((prevState) => ({ ...prevState, [input]: error }));
   };
 
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        BackHandler.exitApp();
+        return true;
+      };
+
+      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () =>
+        BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    }, [])
+  );
+
+  const getLocation = async () => {
+    setLoading(true);
+    setErrorMsg(null);
+    dispatch(clearLocationAddress());
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      console.log("Permission status:", status);
+      if (status !== 'granted') {
+        setErrorMsg("Permission to access location was denied.");
+        setLoading(false);
+        navigation.navigate('DenyLocation');
+        return;
+      }
+  
+  
+      const isLocationEnabled = await Location.hasServicesEnabledAsync();
+      console.log("Location services enabled:", isLocationEnabled);
+
+      if (!isLocationEnabled) {
+        setErrorMsg("Permission to access location was denied or location services are disabled");
+        setLoading(false);
+        navigation.navigate('DenyLocation');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      console.log("Location:", location);
+      setLocation(location);
+
+      const geocode = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+      console.log("Geocode:", geocode);
+      dispatch(setLocationAddress(geocode[0]));
+
+      setRegion(geocode[0].isoCountryCode);
+    } catch (error) {
+      console.log("Error:", error.message);
+
+      if (error.message === "Location request failed due to unsatisfied device settings") {
+        setErrorMsg("Location request failed due to unsatisfied device settings");
+        navigation.navigate(DenyLocation);
+      } else {
+        setErrorMsg("Error fetching location");
+        // navigation.navigate(DenyLocation);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getLocation();
+  }, []);
+
+  useEffect(() => {
+    if (region === "US") {
+      setShowEmail(true);
+    } else if (region === "IN") {
+      setShowEmail(false);
+    }
+  }, [region]);
+
   const handleSubmit = async () => {
     let isValid = true;
-
 
     if (!mobileNumber) {
       setMobileNumberError("Please enter your mobile number");
@@ -54,29 +139,16 @@ const Login = ({ navigation }) => {
 
     if (isValid && !loading) {
       setLoading(true);
-      const formData = {  phoneNumber: mobileNumber };
+      const formData = { phoneNumber: mobileNumber };
 
       try {
         const res = await dispatch(login(formData));
         console.log("res", res);
-
         if (res && res.success) {
-          navigation.navigate("Otp", { mobileNumber: mobileNumber });
-        } else if (
-          res &&
-          res.success === false &&
-          res.message === "Not register!"
-        ) {
-          // Show email field if the user is not registered
-          setShowName(true);
-          setShowEmail(true);
-          handleError(res.message, "mobileNumber");
-        } else if (
-          res &&
-          res.error &&
-          res.error.data &&
-          res.error.data.message
-        ) {
+          navigation.navigate("Otp", { mobileNumber: mobileNumber, region: region });
+        } else if (res && res.success === false && res.message === "NOTPRESENT!") {
+          navigation.navigate("Register", { phoneNumber: mobileNumber, region: region });
+        } else if (res && res.error && res.error.data && res.error.data.message) {
           handleError(res.error.data.message, "mobileNumber");
         } else {
           console.error(res);
@@ -84,19 +156,12 @@ const Login = ({ navigation }) => {
         }
       } catch (error) {
         if (error.response && error.response.status === 400) {
-          const message = error.response.message || "Not register!";
-          setShowEmail(true);
-          setShowName(true);
+          const message = error.response.message || "NOTPRESENT!";
+          navigation.navigate("Register", { phoneNumber: mobileNumber, region: region });
           handleError(message, "mobileNumber");
         } else {
-          console.error(
-            "Error occurred while submitting mobile number:",
-            error
-          );
-          handleError(
-            "Error occurred while submitting mobile number",
-            "mobileNumber"
-          );
+          console.error("Error occurred while submitting mobile number:", error);
+          handleError("Error occurred while submitting mobile number", "mobileNumber");
         }
       } finally {
         setLoading(false);
@@ -106,22 +171,7 @@ const Login = ({ navigation }) => {
 
   const handleEmailSubmit = async () => {
     let isValid = true;
-  
-    if (!inputs.name) {
-      handleError("Please input name", "name");
-      isValid = false;
-    }
 
-    if (!mobileNumber) {
-      setMobileNumberError("Please enter your mobile number");
-      isValid = false;
-    } else if (mobileNumber.length !== 10) {
-      setMobileNumberError("Mobile number should have 10 digits");
-      isValid = false;
-    } else {
-      setMobileNumberError("");
-    }
-  
     if (!inputs.email) {
       handleError("Please input email", "email");
       isValid = false;
@@ -132,128 +182,88 @@ const Login = ({ navigation }) => {
         isValid = false;
       }
     }
-  
+
     if (isValid && !loading) {
       setLoading(true);
-      const formData = {
-        phoneNumber: mobileNumber,
-        name: inputs.name,
-        email: inputs.email,
-      };
-  
+      const formData = { email: inputs.email };
+
       try {
-        const res = await dispatch(register(formData));
-        if (res  && res.success) {
-          navigation.navigate("Otp", { mobileNumber: mobileNumber });
-        } else {
-          setErrors((prevState) => ({
-            ...prevState,
-            mobileNumber: res.error || "Unknown error occurred",
-          }));
+        const res = await dispatch(loginEmail(formData));
+        if (res && res.success) {
+          navigation.navigate("Otp", { email: inputs.email, region: region });
+        } else if (res && res.success === false && res.message === "NOTPRESENT!") {
+          navigation.navigate("Register", { email: inputs.email, region: region });
+          handleError(res.message, "email");
         }
       } catch (error) {
-        console.error("Error occurred while registering user:", error);
-        setErrors((prevState) => ({
-          ...prevState,
-          mobileNumber: "Error occurred while registering user",
-        }));
+        if (error.response && error.response.status === 400) {
+          const message = error.response.message || "NOTPRESENT!";
+          navigation.navigate("Register", { email: inputs.email, region: region });
+          handleError(message, "email");
+        } else {
+          console.error("Error occurred while submitting email:", error);
+          handleError("Error occurred while submitting email", "email");
+        }
       } finally {
         setLoading(false);
       }
     }
   };
-  
+
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" />
-      <ScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          marginHorizontal: 20,
-          paddingTop: 50,
-        }}
-      >
+      <StatusBar backgroundColor="transparent" style="dark"/>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, marginHorizontal: 20, paddingTop: 50 }}>
         <View style={{ flex: 1 }}>
           <View>
-            <Text
-              style={{
-                fontSize: hp(4),
-                fontFamily: "Poppins",
-                fontWeight: "bold",
-              }}
-            >
+            <Text style={{ fontSize: hp(4), fontFamily: "Poppins_Medium" }}>
               Welcome back.
             </Text>
-            <Text
-              style={{
-                fontSize: hp(2.2),
-                fontFamily: "Poppins",
-                color: "gray",
-                fontWeight: "400",
-              }}
-            >
+            <Text style={{ fontSize: hp(2.2), fontFamily: "Poppins", color: "gray" }}>
               Log in to your account
             </Text>
           </View>
-          <View style={{ marginVertical: 20 }}>
-          {showName && (
-            <Input
-              onChangeText={(text) => handleOnchange(text, "name")}
-              onFocus={() => handleError(null, "name")}
-              label="Name"
-              placeholder="Name"
-              error={errors.name}
-            />)}
-            <Text style={styles.label}>Mobile Number</Text>
-            <PhoneInput
-              defaultCode="IN"
-              layout="second"
-              containerStyle={styles.inputContainer}
-              textContainerStyle={{
-                paddingVertical: 0,
-                backgroundColor: "#fff",
-                color: "gray",
-              }}
-              keyboardType="number-pad"
-              value={mobileNumber}
-              onChangeText={setMobileNumber}
-            />
-            {mobileNumberError ? (
-              <Text style={{ color: "red" }}>{mobileNumberError}</Text>
-            ) : null}
-            {showEmail && (
-              <View style={{ marginTop: 20 }}>
+          <View>
+            {region === "IN" && (
+              <>
+                <Text style={styles.label}>Mobile Number</Text>
+                <PhoneInput
+                  defaultCode="IN"
+                  layout="first"
+                  containerStyle={styles.phoneInputContainer}
+                  textContainerStyle={styles.phoneTextContainer}
+                  keyboardType="number-pad"
+                  value={mobileNumber}
+                  onChangeText={setMobileNumber}
+                />
+                {mobileNumberError ? (
+                  <Text style={{ color: "red" }}>{mobileNumberError}</Text>
+                ) : null}
+              </>
+            )}
+            {region === "US" && (
+              <>
                 <Input
+                  label="Email"
+                  placeholder="Enter your email"
                   onChangeText={(text) => handleOnchange(text, "email")}
                   onFocus={() => handleError(null, "email")}
-                  label="Email"
-                  placeholder="Email"
                   error={errors.email}
+                  containerStyle={styles.inputContainer}
                 />
-              </View>
+              </>
             )}
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "center",
-                marginTop: 20,
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: "Poppins",
-                  fontWeight: "400",
-                  fontSize: hp(2),
-                }}
-              >
-                You will receive an SMS verification that may apply on the next
-                step.
+            <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 5 }}>
+              <Text style={{ fontFamily: "Poppins", fontWeight: "400", fontSize: 12 }}>
+                You will receive an SMS verification that may apply on the next step.
               </Text>
             </View>
           </View>
         </View>
-        <View style={{ marginBottom: 20 }}>
-          <Button
+        <View style={{marginBottom:12}}>
+          {region === "IN" && (
+           
+            <Button
             title={
               loading ? (
                 <ActivityIndicator
@@ -261,15 +271,32 @@ const Login = ({ navigation }) => {
                   color="#ffffff"
                   style={styles.indicator}
                 />
-              ) : showEmail && showName ? (
-                "Register"
               ) : (
-                "Get OTP"
+                "Continue"
               )
             }
-            onPress={showEmail && showName ? handleEmailSubmit : handleSubmit}
+            onPress={handleSubmit}
             disabled={loading}
           />
+          )}
+          {region === "US" && (
+             <Button
+             title={
+               loading ? (
+                 <ActivityIndicator
+                   size="small"
+                   color="#ffffff"
+                   style={styles.indicator}
+                 />
+               ) : (
+                 "Continue"
+               )
+             }
+             onPress={handleEmailSubmit}
+             disabled={loading}
+           />
+         
+          )}
         </View>
       </ScrollView>
     </View>
@@ -279,27 +306,37 @@ const Login = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-  },
-
-  label: {
-    fontSize: hp(2),
-    fontFamily: "Poppins",
+    backgroundColor: "#ffffff",
   },
   inputContainer: {
-    backgroundColor: "#fff",
-    flexDirection: "row",
-    borderRadius: 10,
     borderWidth: 1,
-    fontFamily: "Poppins",
-    height: 48,
-    alignItems: "center",
-    paddingHorizontal: 15,
-    width: wp(90),
+    borderRadius: 10,
+    borderColor: "gray",
+    width: wp(85),
   },
-  indicator: {
-    position: "absolute",
-    alignSelf: "center",
+  phoneInputContainer: {
+    borderWidth: 1,
+    borderRadius: 10,
+    borderColor: "gray",
+    width: wp(85),
+  },
+  phoneTextContainer: {
+    borderTopRightRadius: 10,
+    borderBottomRightRadius: 10,
+    paddingVertical: 0,
+    height: 45,
+  },
+  label: {
+    marginBottom: 10,
+    fontFamily: "Poppins",
+    fontSize: 14,
+    color: COLORS.black,
+  },
+ 
+  buttonText: {
+    color: COLORS.white,
+    fontSize: 18,
+    fontFamily: "Poppins_Medium",
   },
 });
 

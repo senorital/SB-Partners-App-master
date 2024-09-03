@@ -1,5 +1,6 @@
 import React from 'react';
 import {TouchableOpacity, Text} from 'react-native';
+import { COLORS } from '../constants';
 
 const Button = ({title, onPress = () => {}}) => {
   return (
@@ -7,15 +8,16 @@ const Button = ({title, onPress = () => {}}) => {
       onPress={onPress}
       activeOpacity={0.7}
       style={{
-        height: 55,
+        height: 48,
         width: '100%',
-        backgroundColor: '#5F33E1',
+      
+        backgroundColor: COLORS.primary,
         marginVertical: 20,
         justifyContent: 'center',
         alignItems: 'center',
         borderRadius:10
       }}>
-      <Text style={{color: '#fff', fontWeight: 'bold', fontSize: 18}}>
+      <Text style={{color: COLORS.white, fontFamily:'Poppins_Medium', fontSize: 16}}>
         {title}
       </Text>
     </TouchableOpacity>

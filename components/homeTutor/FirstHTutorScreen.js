@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState,useCallback } from "react";
 import {
   Text,
   View,
@@ -8,7 +8,7 @@ import {
   Image,
   StatusBar,
   BackHandler,
-  ActivityIndicator,
+  ActivityIndicator,ToastAndroid
 } from "react-native";
 import {
   widthPercentageToDP as wp,
@@ -20,11 +20,20 @@ import * as Yup from "yup";
 import Button from "../button/Button";
 import { useDispatch } from "react-redux";
 import Toast from "react-native-toast-message";
-import { updateTutorTerm } from "../../action/auth/auth";
+import { updateTutorTerm, getInstructor } from "../../action/auth/auth";
+import { COLORS } from "../constants";
+import CustomAlertModal from "../CustomAlert/CustomAlertModal";
+import { useFocusEffect } from '@react-navigation/native';
 
 const FirstHTutorScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [showAlert, setShowAlert] = useState(false);
+  const [onAlertOk, setOnAlertOk] = useState(() => {});
+  const [boldText, setBoldText] = useState('');
+
+
   const data = [
     { key: "1", value: "Yes" },
     { key: "2", value: "No" },
@@ -32,48 +41,7 @@ const FirstHTutorScreen = ({ navigation }) => {
 
   const validationSchema = Yup.object().shape({
     selected: Yup.string().required("Selection is required"),
-    // isChecked: Yup.boolean().oneOf([true], "You must accept the terms"),
   });
-
-  const handleSubmit = async (values) => {
-    try {
-      const isHome = values.selected === "Yes";
-      //   console.log("Form values:", values);
-      //   console.log("Providing Yoga Sessions at Home:", isHome);
-      const termInfo = {
-        homeTutorTermAccepted: isHome,
-        // homeTutorTermAccepted: values.isChecked,
-      };
-      //   console.log(termInfo);
-      setLoading(true);
-      const res = await dispatch(updateTutorTerm(termInfo));
-      console.log(res);
-      if (res.success) {
-        Toast.show({
-          type: "success",
-          text1: res.message,
-          visibilityTime: 2000,
-          autoHide: true,
-        });
-        navigation.navigate("HomeTutor");
-      }
-    } catch (error) {
-      console.error("Error during form submission:", error);
-      const msg = error.response.data.message;
-      Toast.show({
-        type: "error",
-        text1: msg || "An error occurred. Please try again.",
-        visibilityTime: 2000,
-        autoHide: true,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoBack = () => {
-    navigation.goBack();
-  };
 
   useEffect(() => {
     const handleBackPress = () => {
@@ -92,6 +60,87 @@ const FirstHTutorScreen = ({ navigation }) => {
     };
   }, [navigation]);
 
+  const checkProfileCompletion = useCallback(async () => {
+    try {
+      // Fetch the instructor profile
+      const profileRes = await dispatch(getInstructor());
+      const profileComplete = profileRes.data.profileComplete;
+      const qualifications = profileRes.data.instructor.qualifications;
+      const username = profileRes.data.instructor.name || "User"; // Assuming username is available in the response
+  
+      if (profileComplete < 30) {
+
+        setBoldText(username);
+        setAlertMessage(`Please complete your Profile.`);
+        setOnAlertOk(() => () => {
+          setShowAlert(false);
+          navigation.navigate("EditProfile");
+        });
+        setShowAlert(true);
+        return false;
+      } else if (!qualifications.some((q) => q.qualificationIn === "HomeTutor")) {
+
+        setBoldText(username);
+        setAlertMessage(`Please complete your Qualification.`);
+        setOnAlertOk(() => () => {
+          setShowAlert(false);
+          navigation.navigate("AddQualification");
+        });
+        setShowAlert(true);
+        return false; // Qualification incomplete
+
+      }
+      return true; // Profile and qualifications complete
+
+    } catch (error) {
+      console.error("Error checking profile completion:", error);
+   
+      return false; // Error occurred
+
+    }
+  }, [dispatch, navigation]);
+
+
+ 
+
+  const handleSubmit = async (values) => {
+    try {
+      const isProfileComplete = await checkProfileCompletion();
+     console.log(isProfileComplete)
+      if (!isProfileComplete) {
+        return; // Exit if profile or qualifications are incomplete
+      }
+        const isHome = values.selected === "Yes";
+      const termInfo = {
+        homeTutorTermAccepted: isHome,
+      };
+
+      setLoading(true);
+      const res = await dispatch(updateTutorTerm(termInfo));
+      console.log(res);
+
+      if (res.success) {
+        ToastAndroid.show(res.message, ToastAndroid.SHORT);
+
+
+        if (isHome) {
+          navigation.navigate("HomeTutor");
+        }
+      }
+    } catch (error) {
+      console.error("Error during form submission:", error);
+      const msg = error.res?.data?.message;
+      ToastAndroid.show(msg, ToastAndroid.SHORT);
+
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoBack = () => {
+    navigation.goBack();
+  };
+
   return (
     <Formik
       initialValues={{ selected: "" }}
@@ -108,12 +157,9 @@ const FirstHTutorScreen = ({ navigation }) => {
         touched,
       }) => (
         <View style={styles.container}>
-          <StatusBar translucent backgroundColor="transparent" />
-
-          <ScrollView
-            contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20 }}
-          >
-            <View style={{ flex: 1 }}>
+          <StatusBar backgroundColor={COLORS.primary} style="light" />
+          <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20 }}>
+            <View style={{ flex: 1, paddingTop: 10 }}>
               <View style={{ flexDirection: "row" }}>
                 <TouchableOpacity
                   onPress={handleGoBack}
@@ -125,12 +171,8 @@ const FirstHTutorScreen = ({ navigation }) => {
                   />
                 </TouchableOpacity>
                 <View style={{ paddingHorizontal: 20, paddingVertical: 10 }}>
-                  <Text style={styles.headingText}>
-                    Become a Home Yoga Tutor
-                  </Text>
-                  <Text style={styles.text1}>
-                    Bring Yoga to Your Clients' Homes
-                  </Text>
+                  <Text style={styles.headingText}>Become a Home Yoga Tutor</Text>
+                  <Text style={styles.text1}>Bring Yoga to Your Clients' Homes</Text>
                 </View>
               </View>
               <View style={styles.imageContainer}>
@@ -144,21 +186,16 @@ const FirstHTutorScreen = ({ navigation }) => {
                 <Text
                   style={{
                     fontFamily: "Poppins",
-                    fontSize: 14,
-                    textAlign: "justify",
+                    fontSize: 13,
                     lineHeight: 24,
                   }}
                 >
                   Welcome to{" "}
-                  <Text
-                    style={{ fontFamily: "PoppinsSemiBold", color: "#000" }}
-                  >
-                    Swasti Bharat Partners!
+                  <Text style={{ fontFamily: "PoppinsSemiBold", color: "#000" }}>
+                    Swasti Bharat Partners !&nbsp;
                   </Text>
                   As a{" "}
-                  <Text
-                    style={{ fontFamily: "PoppinsSemiBold", color: "#000" }}
-                  >
+                  <Text style={{ fontFamily: "PoppinsSemiBold", color: "#000" }}>
                     Home Yoga Tutor
                   </Text>{" "}
                   on our platform, you have the opportunity to offer
@@ -186,27 +223,21 @@ const FirstHTutorScreen = ({ navigation }) => {
                   <Text style={styles.errorText}>{errors.selected}</Text>
                 )}
               </View>
-          
               <View style={styles.termsContainer}>
                 <Text style={styles.termsText}>
                   By clicking next, you accept the app's{" "}
                 </Text>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate("TermConditions")}
-                >
+                <TouchableOpacity onPress={() => navigation.navigate("TermConditions")}>
                   <Text style={styles.linkText}>Terms of Service</Text>
                 </TouchableOpacity>
                 <View style={styles.newLineContainer}>
                   <Text style={styles.termsText}> and </Text>
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate("PrivacyPolicy")}
-                  >
+                  <TouchableOpacity onPress={() => navigation.navigate("PrivacyPolicy")}>
                     <Text style={styles.linkText}>Privacy Policy</Text>
                   </TouchableOpacity>
                   <Text style={styles.termsText}>.</Text>
                 </View>
               </View>
-
               <Button
                 title={
                   loading ? (
@@ -223,12 +254,22 @@ const FirstHTutorScreen = ({ navigation }) => {
               />
             </View>
           </ScrollView>
+          <CustomAlertModal
+        visible={showAlert}
+        greeting="Hello,"
+        boldText={boldText}
+        message={alertMessage}
+        onCancel={() => setShowAlert(false)}
+        onOk={() => {
+          setShowAlert(false);
+          onAlertOk();
+        }}
+      />
         </View>
       )}
     </Formik>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -250,14 +291,17 @@ const styles = StyleSheet.create({
   image: { width: "100%", height: "100%", borderRadius: 10 },
   container1: {
     marginVertical: 20,
+    justifyContent:'space-between',
+     alignSelf:'flex-start'
+
   },
   headingText: {
-    fontSize: hp(2.2),
+    fontSize: 13,
     fontFamily: "PoppinsSemiBold",
     lineHeight: 28,
   },
   headingText1: {
-    fontSize: hp(2),
+    fontSize: 13,
     fontFamily: "PoppinsSemiBold",
     lineHeight: 28,
     marginBottom: 8,
@@ -269,22 +313,22 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   termsContainer: {
-    width: wp("100%"),
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingVertical: 10,
+    flexDirection: 'row',
+    flexWrap:'wrap',
+    width:wp('90%'),
+    marginVertical:10,
   },
   termsText: {
     fontFamily: "Poppins",
     fontWeight: "400",
-    fontSize: 13,
+    fontSize: 11,
     textAlign: "justify",
   },
   linkText: {
-    color: "rgba(107, 78, 255, 1)",
-    fontFamily: "Poppins",
+    color: COLORS.primary,
+    fontFamily: "Poppins_Medium",
     fontWeight: "400",
-    fontSize: 13,
+    fontSize: 11,
   },
   newLineContainer: {
     flexDirection: "row",

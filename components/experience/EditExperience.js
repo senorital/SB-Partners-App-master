@@ -6,7 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
-  ActivityIndicator,BackHandler
+  ActivityIndicator,
+  BackHandler,
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { useDispatch } from "react-redux";
@@ -16,8 +17,9 @@ import Input from "../input/Input";
 import Button from "../button/Button";
 import AddCustomData from "../addCustomdata/AddCustomData";
 import { getExperience, updateExperience } from "../../action/experience/experience";
+import { COLORS } from "../constants";
 
-const EditExperience = ({ navigation ,route }) => {
+const EditExperience = ({ navigation, route }) => {
   const { id } = route.params;
   const dispatch = useDispatch();
   const [inputs, setInputs] = useState({
@@ -30,7 +32,6 @@ const EditExperience = ({ navigation ,route }) => {
   const [skills, setSkills] = useState([]);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [date, setDate] = useState("Select Date");
-
   const [loading, setLoading] = useState(false);
   const [loading1, setLoading1] = useState(false);
 
@@ -49,7 +50,7 @@ const EditExperience = ({ navigation ,route }) => {
             joinDate,
           } = res.data;
           setInputs({ workHistory, role, department, organization });
-          setSkills(skills);
+          setSkills(Array.isArray(skills) ? skills : []);
           setDate(joinDate);
         }
       } finally {
@@ -79,45 +80,38 @@ const EditExperience = ({ navigation ,route }) => {
 
   const handleDateConfirm = (date) => {
     if (!date) {
-      // If no date is selected, set an error message for the date field
       handleError("Please select a valid date", "date");
-      return; // Exit the function without setting the date state
+      return;
     }
 
-    // console.warn("A date has been picked: ", date);
     const dt = new Date(date);
     const x = dt.toISOString().split("T");
     const x1 = x[0].split("-");
-    console.log(x1[2] + "/" + x1[1] + "/" + x1[0]);
-    setDate(x1[1] + "/" + x1[2] + "/" + x1[0]);
+    setDate(`${x1[1]}/${x1[2]}/${x1[0]}`);
     handleError(null, "date");
     hideDatePicker();
   };
 
   const validate = async () => {
+    let isValid = true;
+  
     try {
-      let isValid = true;
       const fields = ["workHistory", "role", "organization", "department"];
-
+  
       fields.forEach((field) => {
         if (!inputs[field]) {
           handleError(`Please input ${field.replace(/_/g, " ")}`, field);
           isValid = false;
         }
       });
-
+  
       if (date === "Select Date") {
         handleError("Please select a join date", "date");
         isValid = false;
       }
-
-      if (skills.length === 0) {
-        handleError("Please add at least one skill", "skills");
-        isValid = false;
-      }
-
+  
       if (!isValid) return false;
-
+  
       const data = {
         skills,
         joinDate: date,
@@ -127,25 +121,25 @@ const EditExperience = ({ navigation ,route }) => {
         organization: inputs.organization,
         id,
       };
-
-      console.log(data)
+  
       setLoading(true);
+  
       const res = await dispatch(updateExperience(data));
-      console.log(res);
+  
       if (res.success) {
         setErrors({});
-        // Show success message using Toast.show
         Toast.show({
           type: "success",
           text1: res.message,
           visibilityTime: 2000,
           autoHide: true,
         });
-        navigation.navigate("Experience");
+        navigation.goBack();
+      } else {
+        throw new Error(res.message || "Failed to update experience");
       }
     } catch (error) {
       console.error("Error during form submission:", error);
-      // Show error message using Toast.show
       Toast.show({
         type: "error",
         text1: "An error occurred. Please try again.",
@@ -155,17 +149,18 @@ const EditExperience = ({ navigation ,route }) => {
     } finally {
       setLoading(false);
     }
+  
     return isValid;
   };
+  
 
   useEffect(() => {
     const handleBackPress = () => {
       if (navigation.isFocused()) {
-        // Check if the current screen is focused
-        navigation.goBack(); // Go back if the current screen is focused
-        return true; // Prevent default behavior (exiting the app)
+        navigation.goBack();
+        return true;
       }
-      return false; // If not focused, allow default behavior (exit the app)
+      return false;
     };
 
     BackHandler.addEventListener("hardwareBackPress", handleBackPress);
@@ -175,123 +170,102 @@ const EditExperience = ({ navigation ,route }) => {
     };
   }, [navigation]);
 
-  // console.log(id, "experience");
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" />
+      <StatusBar backgroundColor={COLORS.primary} style="light" />
       <View style={{ paddingTop: 20 }}>
-        <Header
-          title={"Edit Experience"}
-          icon={require("../../assets/back.png")}
-        />
+        <Header title={"Edit Experience"} icon={require("../../assets/back.png")} />
       </View>
       {loading1 ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0000ff" />
         </View>
-      ) :
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20 }}
-      >
-        <View style={{ flex: 1 }}>
-          <Input
-            onChangeText={(text) => handleOnchange(text, "workHistory")}
-            onFocus={() => handleError(null, "workHistory")}
-            label="Work History"
-            placeholder="Work History"
-            value={inputs.workHistory}
-            error={errors.workHistory}
-            isRequired={true}
-          />
-          <Input
-            onChangeText={(text) => handleOnchange(text, "role")}
-            onFocus={() => handleError(null, "role")}
-            label="Role"
-            placeholder="Role"
-            error={errors.role}
-            value={inputs.role}
-            isRequired={true}
-          />
-          <Input
-            onChangeText={(text) => handleOnchange(text, "organization")}
-            onFocus={() => handleError(null, "organization")}
-            label="Organization"
-            placeholder="Organization"
-            error={errors.organization}
-            value={inputs.organization}
-            isRequired={true}
-          />
-          <Text style={styles.label}>
-            Join Date<Text style={{ color: "red" }}> *</Text>
-          </Text>
-          <TouchableOpacity
-            style={styles.inputContainer}
-            onPress={() => {
-              showDatePicker();
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 14,
-                color: "gray",
-                padding: 10,
-                fontFamily: "Poppins",
-              }}
-            >
-              {date}
+      ) : (
+        <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20 }}>
+          <View style={{ flex: 1 }}>
+            <Input
+              onChangeText={(text) => handleOnchange(text, "workHistory")}
+              onFocus={() => handleError(null, "workHistory")}
+              label="Work History"
+              placeholder="Work History"
+              value={inputs.workHistory}
+              error={errors.workHistory}
+              isRequired={true}
+            />
+            <Input
+              onChangeText={(text) => handleOnchange(text, "role")}
+              onFocus={() => handleError(null, "role")}
+              label="Role"
+              placeholder="Role"
+              error={errors.role}
+              value={inputs.role}
+              isRequired={true}
+            />
+            <Input
+              onChangeText={(text) => handleOnchange(text, "organization")}
+              onFocus={() => handleError(null, "organization")}
+              label="Organization"
+              placeholder="Organization"
+              error={errors.organization}
+              value={inputs.organization}
+              isRequired={true}
+            />
+            <Text style={styles.label}>
+              Join Date<Text style={{ color: "red" }}> *</Text>
             </Text>
-          </TouchableOpacity>
-          <DateTimePickerModal
-            isVisible={isDatePickerVisible}
-            mode="date"
-            onConfirm={handleDateConfirm}
-            onCancel={hideDatePicker}
-          />
-          {errors.date && <Text style={styles.errorText}>{errors.date}</Text>}
-          <View style={{marginTop:10}}>
-          <Input
-            onChangeText={(text) => handleOnchange(text, "department")}
-            onFocus={() => handleError(null, "department")}
-            label="Department"
-            placeholder="Department"
-            error={errors.department}
-            value={inputs.department}
-            isRequired={true}
-          />
-          </View>
-          <AddCustomData
-            languages={skills}
-            setLanguages={setSkills}
-            label={"Skills"}
-            isRequired={true}
-          />
-          {/* Display the list of languages */}
-          <View style={styles.languageList}>
-            {skills.map((skill, index) => (
-              <View key={index} style={styles.languageItem}>
-                <Text>{skill}</Text>
-              </View>
-            ))}
-            {errors.skills && (
-              <Text style={styles.errorText}>{errors.skills}</Text>
-            )}
-          </View>
-        </View>
-        <Button
-          title={
-            loading ? (
-              <ActivityIndicator
-                size="small"
-                color="#ffffff"
-                style={styles.indicator}
+            <TouchableOpacity
+              style={styles.inputContainer}
+              onPress={showDatePicker}
+            >
+              <Text style={styles.dateText}>
+                {date}
+              </Text>
+            </TouchableOpacity>
+            <DateTimePickerModal
+              isVisible={isDatePickerVisible}
+              mode="date"
+              onConfirm={handleDateConfirm}
+              onCancel={hideDatePicker}
+            />
+            {errors.date && <Text style={styles.errorText}>{errors.date}</Text>}
+            <View style={{ marginTop: 10 }}>
+              <Input
+                onChangeText={(text) => handleOnchange(text, "department")}
+                onFocus={() => handleError(null, "department")}
+                label="Department"
+                placeholder="Department"
+                error={errors.department}
+                value={inputs.department}
+                isRequired={true}
               />
-            ) : (
-              "Update"
-            )
-          }
-          onPress={validate}
-        />
-      </ScrollView>}
+            </View>
+            {/* <AddCustomData
+              languages={skills}
+              setLanguages={setSkills}
+              label={"Skills"}
+              isRequired={true}
+            />
+            <View style={styles.languageList}>
+              {skills.map((skill, index) => (
+                <View key={index} style={styles.languageItem}>
+                  <Text>{skill}</Text>
+                </View>
+              ))}
+              {errors.skills && <Text style={styles.errorText}>{errors.skills}</Text>}
+            </View> */}
+          </View>
+          <Button
+            title={
+              loading ? (
+                <ActivityIndicator size="small" color="#ffffff" style={styles.indicator} />
+              ) : (
+                "Update"
+              )
+            }
+            onPress={validate}
+          />
+        </ScrollView>
+      )}
     </View>
   );
 };
@@ -306,7 +280,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   label: {
-    // marginVertical: 5,
     fontSize: 14,
     fontFamily: "Poppins",
   },
@@ -322,16 +295,21 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 15,
     borderWidth: 1,
-    fontFamily: "Poppins",
     height: 45,
     borderColor: "gray",
   },
+  dateText: {
+    fontSize: 14,
+    color: "gray",
+    padding: 10,
+    fontFamily: "Poppins",
+  },
   languageList: {
-    flexDirection: "row", // Display items horizontally
-    flexWrap: "wrap", // Wrap items to next row when needed
+    flexDirection: "row",
+    flexWrap: "wrap",
   },
   languageItem: {
-    margin: 5, // Add some margin between items
+    margin: 5,
     padding: 8,
     backgroundColor: "#f0f0f0",
     borderRadius: 5,

@@ -1,179 +1,202 @@
-import React, { useEffect, useState } from "react";
+  import React, { useEffect, useState } from "react";
+  import {
+    Text,
+    View,
+    StyleSheet,
+    TouchableOpacity,
+    Image,
+    ScrollView,
+    StatusBar,
+    Linking,
+    BackHandler,
+    ActivityIndicator
+  } from "react-native";
+  import { createShimmerPlaceholder } from "react-native-shimmer-placeholder";
+  import LinearGradient from "expo-linear-gradient";
+  import { useDispatch } from "react-redux";
+  import Toast from "react-native-toast-message";
+  import { Avatar } from "react-native-elements";
+  import { Ionicons } from "@expo/vector-icons";
+  import Header from "../header/Header";
+  import { getInstructor } from "../../action/auth/auth";
+  import Border from "../border/BorderRadius";
+  import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { COLORS, icons } from "../constants";
+import { FONTS } from "../constants/theme";
 import {
-  Text,
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  ScrollView,
-  StatusBar,
-  Linking,
-  BackHandler
-} from "react-native";
-import { useSelector, useDispatch } from "react-redux";
-import { Avatar } from "react-native-elements";
-import { Ionicons } from "@expo/vector-icons";
-import Header from "../header/Header";
-import { getInstructor } from "../../action/auth/auth";
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from "react-native-responsive-screen";
+import { useFocusEffect } from '@react-navigation/native';
 
-const ProfileOverview = ({ navigation }) => {
-  const dispatch = useDispatch();
-  const user = useSelector((state) => state.auth.user);
-  useEffect(() => {
+const ShimmerPlaceholder = createShimmerPlaceholder(LinearGradient);
+
+  const ProfileOverview = ({ navigation }) => {
+    const dispatch = useDispatch();
+    const [loading, setLoading] = useState(false);
+    const [user, setUser] = useState(null);
+    const [dob, setDob]  = useState(null);
+
     const fetchData = async () => {
       try {
-        await dispatch(getInstructor());
+        setLoading(true);
+        const res = await dispatch(getInstructor());
+        console.log('Instructor data:', res.data.instructor.dateOfBirth); 
+        setDob(res.data.instructor.dateOfBirth);
+        setUser(res.data.instructor);
       } catch (error) {
         console.error("Error fetching data:", error);
-        message.error(error.response.data.message);
+        const msg = error.response?.data?.message;
+        Toast.show({
+          type: "error",
+          text1: msg || "An error occurred. Please try again.",
+          visibilityTime: 2000,
+          autoHide: true,
+        });
+      } finally {
+        setLoading(false);
       }
     };
+  
+    useEffect(() => {
+   
 
-    fetchData();
-  }, [dispatch]);
+      fetchData();
+    }, [dispatch]);
 
-  useEffect(() => {
-    const handleBackPress = () => {
-      if (navigation.isFocused()) {
-        // Check if the current screen is focused
-        navigation.goBack(); // Go back if the current screen is focused
-        return true; // Prevent default behavior (exiting the app)
-      }
-      return false; // If not focused, allow default behavior (exit the app)
+    console.log('Instructor data dob:', dob); 
+    useFocusEffect(
+      React.useCallback(() => {
+        fetchData();
+      }, [])
+    );
+
+    useEffect(() => {
+      const handleBackPress = () => {
+        if (navigation.isFocused()) {
+          navigation.goBack();
+          return true;
+        }
+        return false;
+      };
+
+      BackHandler.addEventListener("hardwareBackPress", handleBackPress);
+
+      return () => {
+        BackHandler.removeEventListener("hardwareBackPress", handleBackPress);
+      };
+    }, [navigation]);
+
+    const handlePress = (url) => {
+      Linking.openURL(url);
     };
 
-    BackHandler.addEventListener("hardwareBackPress", handleBackPress);
+    const imageUrl = user?.imagePath
+      ? { uri: user.imagePath }
+      : require("../../assets/dAvatar.jpg");
 
-    return () => {
-      BackHandler.removeEventListener("hardwareBackPress", handleBackPress);
-    };
-  }, [navigation]);
-
-  const handlePress = (url) => {
-    Linking.openURL(url);
-  };
-
-  const imageUrl = user.data.imagePath
-    ? { uri: user.data.imagePath }
-    : require("../../assets/dAvatar.jpg");
-  return (
-    <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" />
-      <View style={{ paddingTop: 20 }}>
-        <Header title={"My Profile"} icon={require("../../assets/back.png")} />
-      </View>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={{ flex: 1 }}>
+    if (loading) {
+      return (
+        <View style={{ marginTop: 100, paddingHorizontal: 20 }}>       
+        <View style={{ alignItems:'center'}}>
+          <ShimmerPlaceholder
+            style={{ borderRadius: 10, height: 95, width: wp(83) }}
+          />
+        </View>
+        <View style={{ marginVertical: 20 }}>
           <View
-            style={{
-              marginHorizontal: 20,
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 15,
-            }}
+            style={{justifyContent:'center',alignItems:'center' }}
           >
-            <Avatar
-              rounded
-              source={imageUrl}
-              size={100}
+            <ShimmerPlaceholder
+              style={{ borderRadius: 10, height: 350, width: wp(83) }}
             />
-            <View>
-              <Text
-                style={{
-                  fontFamily: "PoppinsSemiBold",
-                  fontSize: 20,
-                  textAlign: "center",
-                }}
-              >
-                {user && <>{user.data.name}</>}
-              </Text>
-              {/* <Text
-                style={{
-                  fontFamily: "Poppins",
-                  fontSize: 18,
-                  textAlign: "center",
-                }}
-              >
-                Trainer
-              </Text> */}
-            </View>
-            {/* <View style={{ flexDirection: "row" }}>
-              <Text style={{ fontSize: 16 }}>⭐</Text>
-              <Text style={{ fontSize: 16 }}>⭐</Text>
-              <Text style={{ fontSize: 16 }}>⭐</Text>
-              <Text style={{ fontSize: 16 }}>⭐</Text>
-              <Text style={{ fontSize: 16 }}>⭐</Text>
-            </View> */}
+            <ShimmerPlaceholder
+              style={{
+                marginVertical:30,
+                borderRadius: 10,
+                height: 150,
+                width: wp(83),
+                marginLeft: 10,
+              }}
+            />
           </View>
-          <View style={{ paddingHorizontal: 20 }}>
-            <View
-              style={{ flexDirection: "row", justifyContent: "space-between" }}
-            >
-              <Text
-                style={{
-                  fontFamily: "PoppinsSemiBold",
-                  fontSize: 20,
-                  // fontWeight: "500",
-                }}
-              >
-                General Information
-              </Text>
-              <TouchableOpacity
-                onPress={() => navigation.navigate("EditProfile")}
-              >
-                <Image
-                  style={{ width: 20, height: 20 }}
-                  source={require("../../assets/edit.png")}
-                />
-              </TouchableOpacity>
-            </View>
-            <View style={{ paddingVertical: 20 }}>
-              {user && (
-                <View>
-                  <Text style={styles.headingText}>Email Address</Text>
-                  <Text style={styles.text}>
-                    <>{user.data.email}</>
-                  </Text>
-                </View>
-              )}
-              {user && (
-                <View style={{ marginTop: 5 }}>
-                  <Text style={styles.headingText}>Mobile Number</Text>
-                  <Text style={styles.text}>
-                    +91 <>{user.data.phoneNumber}</>
-                  </Text>
-                </View>
-              )}
-              {user && user.data.location &&  (
-                <View style={{ marginTop: 5 }}>
-                  <Text style={styles.headingText}>Location</Text>
-                  <Text style={styles.text}>
-                    <>{user.data.location}</>
-                  </Text>
-                </View>
-              )}
-              {user && user.data.dateOfBirth &&  (
-                <View style={{ marginTop: 5 }}>
-                  <Text style={styles.headingText}>Date Of Birth</Text>
-                  <Text style={styles.text}>
-                    {user.data.dateOfBirth}
-                  </Text>
-                </View>
-              )}
+         
+        </View>
+      </View>
+      );
+    }
 
-              {user &&
-                (user.data.linkedIn ||
-                  user.data.instagram ||
-                  user.data.twitter_x ||
-                  user.data.facebook) && (
+    return (
+      <View style={styles.container}>
+        <StatusBar backgroundColor={COLORS.primary} style="light" />
+        <View style={{ paddingTop: 20 }}>
+          <Header title={"My Profile"} icon={icons.back} />
+        </View>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <View style={{ flex: 1 }}>
+          <View style={{}}>
+            <View style={styles.profileContainer}>
+              <Avatar rounded source={imageUrl} size={75} />
+              <View style={styles.profileTextContainer}>
+              <View style={styles.row}>
+
+                <Text style={styles.profileName}>
+                  {user && <>{user?.name}</>}
+                </Text>
+                <MaterialIcons name="edit" size={20} color="#fff" style={styles.iconRight} onPress={() => navigation.navigate("EditProfile")} />
+
+                </View>
+                <Text style={styles.profileEmail}>
+                  {user && <>{user?.email}</>}
+                </Text>
+              </View>
+            </View>      
+            <Border color={COLORS.primary}  />
+            </View>
+            <View style={{ paddingHorizontal: 20,marginVertical:20,marginTop:40 }}>
+              <View style={styles.textcontainer}>
+                {user?.email && (
+                  <View>
+                   <View style={styles.row}>
+                   <Text style={styles.headingText}>Email Address</Text>
+                   </View>
+                    <Text style={styles.text}>{user.email}</Text>
+                  </View>
+                )}
+                {user?.phoneNumber && (
+                  <View style={{ marginTop: 5 }}>
+                    <View style={styles.row}>
+                      <Text style={styles.headingText}>Mobile Number</Text>
+   
+                    </View>
+                    <Text style={styles.text}>+91 {user.phoneNumber}</Text>
+                  </View>
+                )}
+         {user?.location && user.location.trim() !== '' && user.location !== 'undefined' && user.location !== 'null' && (
+  <View style={{ marginTop: 5 }}>
+    <View style={styles.row}>
+      <Text style={styles.headingText}>Location</Text>
+    </View>
+    <Text style={styles.text}>{user.location}</Text>
+  </View>
+)}
+                {user?.dateOfBirth && (
+                  <View style={{ marginTop: 5 }}>
+                    <View style={styles.row}>
+                      <Text style={styles.headingText}>Date Of Birth</Text>
+                    </View>
+                    <Text style={styles.text}>{dob}</Text>
+                  </View>
+                )}
+                {(user?.linkedIn ||
+                  user?.instagram ||
+                  user?.twitter_x ||
+                  user?.facebook) && (
                   <View style={{ marginTop: 5 }}>
                     <Text style={styles.headingText}>Social Media</Text>
-
                     <View style={styles.iconContainer}>
-                      {user.data.linkedIn && (
-                        <TouchableOpacity
-                          onPress={() => handlePress(user.data.linkedIn)}
-                        >
+                      {user?.linkedIn && (
+                        <TouchableOpacity onPress={() => handlePress(user.linkedIn)}>
                           <Ionicons
                             name="logo-linkedin"
                             size={24}
@@ -182,10 +205,8 @@ const ProfileOverview = ({ navigation }) => {
                           />
                         </TouchableOpacity>
                       )}
-                      {user.data.instagram && (
-                        <TouchableOpacity
-                          onPress={() => handlePress(user.data.instagram)}
-                        >
+                      {user?.instagram && (
+                        <TouchableOpacity onPress={() => handlePress(user.instagram)}>
                           <Ionicons
                             name="logo-instagram"
                             size={24}
@@ -194,10 +215,8 @@ const ProfileOverview = ({ navigation }) => {
                           />
                         </TouchableOpacity>
                       )}
-                      {user.data.twitter_x && (
-                        <TouchableOpacity
-                          onPress={() => handlePress(user.data.twitter_x)}
-                        >
+                      {user?.twitter_x && (
+                        <TouchableOpacity onPress={() => handlePress(user.twitter_x)}>
                           <Ionicons
                             name="logo-twitter"
                             size={24}
@@ -206,10 +225,8 @@ const ProfileOverview = ({ navigation }) => {
                           />
                         </TouchableOpacity>
                       )}
-                      {user.data.facebook && (
-                        <TouchableOpacity
-                          onPress={() => handlePress(user.data.facebook)}
-                        >
+                      {user?.facebook && (
+                        <TouchableOpacity onPress={() => handlePress(user.facebook)}>
                           <Ionicons
                             name="logo-facebook"
                             size={24}
@@ -221,60 +238,104 @@ const ProfileOverview = ({ navigation }) => {
                   </View>
                 )}
 
-              {user && user.data.bio &&  (
-                <View style={{ marginTop: 20 }}>
-                  <Text style={styles.headingText}>About me</Text>
-                  <Text
-                    style={[
-                      styles.text,
-                      {  textAlign: "justify" },
-                    ]}
-                  >
-                    {user.data.bio}
-                  </Text>
                 </View>
-              )}
-
-              {user && user.data.languages?.length > 0 &&  (
-                <View style={{ marginTop: 5 }}>
-                  <Text style={styles.headingText}>Languages</Text>
-                  {user.data.languages?.length > 0 && (
-                    <Text style={styles.text}>
-                      {user.data.languages.join(", ")}
+                {user?.bio && (
+                  <View style={[styles.textcontainer,{marginTop:15}]}>
+                  <View style={styles.row}>
+                    <Text style={styles.headingText}>About me</Text>
+                    </View>    
+                    <Text style={[styles.text, { textAlign: "justify" }]}>
+                      {user.bio}
                     </Text>
-                  )}
-                </View>
-              )}
+                  </View>
+                )}
+                {Array.isArray(user?.languages) && user?.languages?.length > 0 && (
+                <View style={[styles.textcontainer,{marginTop:15}]}>
+                    <Text style={styles.headingText}>Languages</Text>
+                    <Text style={styles.text}>
+                      {user.languages.join(", ")}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
-          </View>
-        </View>
-      </ScrollView>
-    </View>
-  );
-};
+        </ScrollView>
+      </View>
+    );
+  };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  headingText:{
-    fontFamily:'PoppinsSemiBold',
-    fontSize:16
-  },
-  text: {
-    fontFamily: "Poppins",
-    fontSize: 14,
-    color:'gray'
-  },
-  iconContainer: {
-    marginTop: 5,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  icon: {
-    marginRight: 10,
-  },
-});
+  const styles = StyleSheet.create({
+    textcontainer:{
+      padding: 12,
+      backgroundColor:'#FFF',
+      borderRadius:12
+    },
+    container: {
+      flex: 1,
+      backgroundColor:COLORS.background
+      },
+    profileContainer: {
+      marginHorizontal: 20,
+      padding: 12,
+      borderRadius: 12,
+      backgroundColor: COLORS.primary,
+      flexDirection: 'row',
+    },
+    profileTextContainer: {
+      flex: 1, // Ensure the container takes up available space
+       marginLeft: 20, 
+      marginTop:10
+       },
+    profileName: {
+     ...FONTS.h3,
+      color: '#fff',
+    },
+    profileEmail: {
+     ...FONTS.h5,
+     flex:1,
+     marginTop:-10,
+      color: COLORS.white,
+    },
+    headingText: {
+      fontFamily: "Poppins_Medium",
+      fontSize: 14,
+      marginTop:5,
+      justifyContent:'center'
+    },
+    text: {
+      fontFamily: "Poppins",
+      fontSize: 12,
+      marginVertical:10
+    },
+    iconContainer: {
+      marginTop: 5,
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    icon: {
+      marginRight: 30,
+    },
+    iconRight: {
+      marginRight: 10,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    row: {
+      justifyContent: "space-between",
+      flexDirection: "row",
+      flex: 1, // Ensure text takes available space pushing the icon
+    },
 
-export default ProfileOverview;
+    // profileTextContainer: {
+    //   marginLeft: 20,
+    // },
+    // iconLeft: {
+    //   marginRight: 10,
+    // },
+  });
+  
+
+  export default ProfileOverview;

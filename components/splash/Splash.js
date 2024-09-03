@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { View, Text, StyleSheet, Image, StatusBar } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { COLORS, icons } from "../constants";
 
 const SplashScreen = ({ navigation }) => {
   useEffect(() => {
@@ -10,14 +10,15 @@ const SplashScreen = ({ navigation }) => {
   }, []);
 
   return (
-    <LinearGradient
-      colors={["#EEE9FF", "#5F33E1"]}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       <StatusBar translucent backgroundColor="transparent" />
-      <Image source={require("../../assets/sb.jpg")} style={styles.logo} />
-      <Text style={styles.title}> Welcome Partner</Text>
-    </LinearGradient>
+      <Image source={require("../../assets/swasti_bharat.png")} style={styles.logo} />
+      <Text style={styles.title}> Welcome Partners</Text>
+      <View style={styles.bottomContainer}>
+        <Text style={styles.bottomTitle}>Handicraft in #Bharat</Text>
+        <Image source ={icons.flag} style={styles.flag}></Image>
+      </View>
+    </View>
   );
 };
 
@@ -26,18 +27,36 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: COLORS.primary,
   },
   logo: {
-    width: 110,
-    height: 110,
+    width: 160,
+    height: 160,
     borderRadius: 20,
   },
   title: {
     color: "white",
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "800",
-    marginTop: 20,
-    fontFamily:'PoppinsSemiBold'
+    marginTop: 5,
+    fontFamily: 'PoppinsSemiBold',
+  },
+  bottomContainer: {
+    position: 'absolute',
+    bottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  bottomTitle: {
+    color: "white",
+    fontSize: 12,
+    fontFamily: 'Poppins',
+  },
+  flag: {
+    marginLeft: 5,
+    height:20,
+    width:20,
+    resizeMode:'contain'
   },
 });
 

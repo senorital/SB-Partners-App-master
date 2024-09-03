@@ -7,8 +7,13 @@ import course from "./course/course";
 import qualification from "./qualification/qualification";
 import experience from "./experience/experience";
 import homeTutor from "./homeTutor/homeTutor";
+import locationReducer from "./locationReducer/locationReducer";
+import notificationReducer from "./notification/notification";
+import redeemReducer from "./redeem/referralData";
 
 export const rootReducer = combineReducers({
+  notification: notificationReducer,
+  location : locationReducer,
   auth: authReducer,
   studio:yogaStudio,
   category,
@@ -16,5 +21,6 @@ export const rootReducer = combineReducers({
   course,
   qualification,
   experience,
-  homeTutor
+  homeTutor,
+  referralData : redeemReducer
 });

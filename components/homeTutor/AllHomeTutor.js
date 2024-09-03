@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState ,useCallback} from "react";
 import {
   Text,
   View,
@@ -9,8 +9,7 @@ import {
   ActivityIndicator,
   BackHandler,
   Image,
-  FlatList,
-  Alert,
+  Alert,ToastAndroid
 } from "react-native";
 import {
   widthPercentageToDP as wp,
@@ -18,15 +17,20 @@ import {
 } from "react-native-responsive-screen";
 import Toast from "react-native-toast-message";
 import { useDispatch } from "react-redux";
+import BookingTab from "../booking/BookingTab";
 import {
   deleteHomeTutor,
   getTutor,
   publishHomeTutor,
   submitHomeTutor,
 } from "../../action/homeTutor/homeTutor";
+import AntDesign from '@expo/vector-icons/AntDesign';
 import CustomHeader from "../CustomHeader/CustomHeader";
 import { createShimmerPlaceholder } from "react-native-shimmer-placeholder";
 import LinearGradient from "expo-linear-gradient";
+import { COLORS, icons } from "../constants";
+import HomeTutorStatusTab from "./homeTutorStatusTab";
+import { useFocusEffect } from '@react-navigation/native';
 
 const ShimmerPlaceholder = createShimmerPlaceholder(LinearGradient);
 
@@ -34,6 +38,11 @@ const AllHomeTutor = ({ navigation }) => {
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
+  const [bookingTab, setBookingTab] = useState(1);
+
+  const onSelectSwitch = (value) => {
+    setBookingTab(value);
+  };
 
   useEffect(() => {
     const handleBackPress = () => {
@@ -57,22 +66,14 @@ const AllHomeTutor = ({ navigation }) => {
         publishHomeTutor({ id, isPublish: isPublish })
       );
       if (res.success) {
-        Toast.show({
-          type: "success",
-          text1: res.message,
-          visibilityTime: 2000,
-          autoHide: true,
-        });
+        ToastAndroid.show(res.message, ToastAndroid.SHORT);
+        fetchData(); 
       }
     } catch (error) {
       console.error("Error approve item:", error);
       const msg = error.response.data.message;
-      Toast.show({
-        type: "error",
-        text1: msg || "An error occurred. Please try again.",
-        visibilityTime: 2000,
-        autoHide: true,
-      });
+      ToastAndroid.show(msg, ToastAndroid.SHORT);
+
     }
   };
 
@@ -94,49 +95,6 @@ const AllHomeTutor = ({ navigation }) => {
       { cancelable: false }
     );
   };
-
-  const handleSubmitPress = async (id) => {
-    try {
-      const res = await dispatch(submitHomeTutor(id));
-      if (res.success) {
-        Toast.show({
-          type: "success",
-          text1: res.message,
-          visibilityTime: 2000,
-          autoHide: true,
-        });
-      }
-    } catch (error) {
-      console.error("Error approve item:", error);
-      const msg = error.response.data.message;
-      Toast.show({
-        type: "error",
-        text1: msg || "An error occurred. Please try again.",
-        visibilityTime: 2000,
-        autoHide: true,
-      });
-    }
-  };
-
-  const showSubmitAlert = (id) => {
-    Alert.alert(
-      "Confirm for Approval",
-      "Are you sure you want to send this item for approval?",
-      [
-        {
-          text: "Cancel",
-          onPress: () => console.log("Cancel Pressed"),
-          style: "cancel",
-        },
-        {
-          text: "Send",
-          onPress: () => handleSubmitPress(id),
-        },
-      ],
-      { cancelable: false }
-    );
-  };
-
   const showAlert = (id) => {
     Alert.alert(
       "Confirm Delete",
@@ -159,67 +117,184 @@ const AllHomeTutor = ({ navigation }) => {
   const handleDelete = async (id) => {
     try {
       const res = await dispatch(deleteHomeTutor(id));
-      if (res.success) {
-        Toast.show({
-          type: "success",
-          text1: res.message,
-          visibilityTime: 2000,
-          autoHide: true,
-        });
+      console.log("Tutor ID :" + id);
+  
+      if (res && res.success) {
+        // Show a toast message using ToastAndroid
+        ToastAndroid.show(res.message, ToastAndroid.SHORT);
+        fetchData(); 
       }
     } catch (error) {
       console.error("Error deleting item:", error);
-      const msg = error.response.data.message;
-      Toast.show({
-        type: "error",
-        text1: msg || "An error occurred. Please try again.",
-        visibilityTime: 2000,
-        autoHide: true,
-      });
+      const msg = error.res?.data?.message || "An error occurred. Please try again.";
+      
+      // Show error message using ToastAndroid
+      ToastAndroid.show(msg, ToastAndroid.SHORT);
     }
   };
+  
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const res = await dispatch(getTutor());
+      setData(res.data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      const msg = error.res.data.message;
+      ToastAndroid.show(msg, ToastAndroid.SHORT);
 
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const res = await dispatch(getTutor());
-        console.log(res.data[0].images);
-        setData(res.data);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        const msg = error.response.data.message;
-        Toast.show({
-          type: "error",
-          text1: msg,
-          visibilityTime: 2000,
-          autoHide: true,
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, [dispatch]);
 
-  const handleHomeTutorPress = (tutorId) => {
-    navigation.navigate("ShowHomeTutor", { id: tutorId });
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [dispatch])
+  );
+
+  const handleHomeTutorPress = (tutorId, approvalStatus) => {
+    navigation.navigate("ShowHomeTutor", { id: tutorId, status: approvalStatus });
   };
 
+
+  // Filtered data arrays
+  const approvedTutors = data.filter(
+    (tutor) => tutor.approvalStatusByAdmin === "Approved"
+  );
+  const reviewTutors = data.filter(
+    (tutor) => tutor.approvalStatusByAdmin === "Pending"
+  );
+  const draftTutors = data.filter(
+    (tutor) => tutor.approvalStatusByAdmin === null
+  );
+
+
+  
+  const renderTutors = (tutors, tab) => {
+    if (tutors.length === 0) {
+      return (
+        <View style={styles.noDataContainer}>
+          <Text style={styles.noDataText}>No Data Found</Text>
+        </View>
+      );
+    }
+    const flattenedTutors = [];
+    tutors.forEach((tutor) => {
+      if (tutor.serviceAreas && tutor.serviceAreas.length > 0 && tutor.timeSlotes && tutor.timeSlotes.length > 0) {
+        tutor.serviceAreas.forEach((area) => {
+          tutor.timeSlotes.forEach((slot) => {
+            flattenedTutors.push({ ...tutor, currentArea: area, currentSlot: slot });
+          });
+        });
+      } else if (tutor.serviceAreas && tutor.serviceAreas.length > 0) {
+        tutor.serviceAreas.forEach((area) => {
+          flattenedTutors.push({ ...tutor, currentArea: area, currentSlot: null });
+        });
+      } else if (tutor.timeSlotes && tutor.timeSlotes.length > 0) {
+        tutor.timeSlotes.forEach((slot) => {
+          flattenedTutors.push({ ...tutor, currentArea: null, currentSlot: slot });
+        });
+      } else {
+        flattenedTutors.push(tutor);
+      }
+    });
+
+    return flattenedTutors.map((tutor, index) => {
+      const tutorImage =
+        tutor.images && tutor.images.length > 0
+          ? tutor.images[0].path
+          : null;
+  
+
+          
+      return (
+        <TouchableOpacity
+          onPress={() => handleHomeTutorPress(tutor.id, tutor.approvalStatusByAdmin)}
+          style={{ marginRight: 10 }}
+          key={index}
+        >
+          <View style={styles.cardContainer}>
+            <View style={styles.leftContainer}>
+              <Image
+                source={
+                  tutorImage
+                    ? { uri: tutorImage }
+                    : require("../../assets/get-screen/tutor1.jpg")
+                }
+                style={styles.tutorImage}
+              />
+            </View>
+            <View style={styles.rightContainer}>
+              <Text style={styles.dateText}>
+                {(tutor.isGroupSO ? "Group" : "") +
+                  (tutor.isGroupSO && tutor.isPrivateSO ? " & " : "") +
+                  (tutor.isPrivateSO ? "Individual" : "")}
+              </Text>
+              <Text style={styles.text1}>
+                {tutor.currentArea ? tutor.currentArea.locationName : "No Area"}
+              </Text>
+              <View style={{ flexDirection: "row", marginTop: 5 }}>
+              {tutor.currentSlot && tutor.currentSlot.time ? (
+  <TouchableOpacity style={{ marginRight: 10 }}>
+    <Text style={styles.timeslot}>
+      {tutor.currentSlot.time}
+    </Text>
+  </TouchableOpacity>
+) : null}
+                {tutor.privateSessionPrice_Day && (
+                  <TouchableOpacity style={{ marginRight: 10 }}>
+                    <Text style={styles.price}>
+                      ₹ {tutor.privateSessionPrice_Day}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+               
+                {tab === 1 && (
+                  <TouchableOpacity
+                    style={{ marginRight: 10 }}
+                    onPress={() => showPublishAlert(tutor.id, true)}
+                  >
+                    <Text style={styles.detailsButton}>
+                      {tutor.isPublish ? "Published" : "Publish"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+               
+              </View>
+            </View>
+
+            <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => showAlert(tutor.id)}
+                >
+                  <Image
+                    source={require('../../assets/delete.png')}
+                    style={styles.editIcon}
+                  />
+                </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      );
+    });
+  };
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" />
+      <StatusBar backgroundColor={COLORS.primary} style="light" />
       <View style={{ paddingTop: 20 }}>
         <CustomHeader
-          title="All Home Tutor"
-          icon={require("../../assets/back.png")}
+          title="Your Listings"
+          icon={icons.back}
           buttonText="Add New"
           destination="HomeTutor"
         />
       </View>
       {loading ? (
-        <View style={{ marginHorizontal: 20, marginVertical: 10 }}>
+        <View style={{ marginHorizontal: 18, marginVertical: 10 }}>
           <View style={styles.cardContainer1}>
             <ShimmerPlaceholder
               style={[styles.tutorImage, { marginRight: 10 }]}
@@ -228,90 +303,67 @@ const AllHomeTutor = ({ navigation }) => {
               <ShimmerPlaceholder
                 style={[styles.text, { marginVertical: 10 }]}
               />
-              <ShimmerPlaceholder style={styles.text1} />
-              <ShimmerPlaceholder
-                style={[styles.text1, { marginVertical: 10 }]}
-              />
+              <ShimmerPlaceholder style={styles.text} />
+              <ShimmerPlaceholder style={styles.text} />
             </View>
           </View>
         </View>
       ) : (
-        <ScrollView>
-          {data.map((tutor, index) => {
-            const tutorImage =
-              tutor.images && tutor.images.length > 0
-                ? tutor.images[0].path
-                : null;
-            return (
-              <View style={styles.cardContainer} key={index}>
-                <TouchableOpacity
-                  style={styles.deleteButtonContainer}
-                  onPress={() => showAlert(tutor.id)}
-                >
-                  <Image
-                    source={require("../../assets/delete.png")}
-                    style={styles.deleteButtonIcon}
-                  />
-                </TouchableOpacity>
-                <View style={styles.leftContainer}>
-                  <Image
-                    source={
-                      tutorImage
-                        ? { uri: tutorImage }
-                        : require("../../assets/get-screen/tutor1.jpg")
-                    }
-                    style={styles.tutorImage}
-                  />
-                </View>
-                <View style={styles.rightContainer}>
-                  <Text style={styles.dateText}>Services Offered </Text>
-                  <View style={{ paddingVertical: 5 }}>
-                    <View style={styles.timeSlotContainer}>
-                      <Text style={styles.timeSlotText}>
-                        {(tutor.isGroupSO ? "Group" : "") +
-                          (tutor.isGroupSO && tutor.isPrivateSO ? " & " : "") +
-                          (tutor.isPrivateSO ? "Individual" : "")}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={{ flexDirection: "row" }}>
-                    <TouchableOpacity
-                      style={{ marginRight: 10 }}
-                      onPress={() => showSubmitAlert(tutor.id)}
-                    >
-                      <Text style={styles.detailsButton}>
-                        Submit Home Tutor
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={{ marginRight: 10 }}
-                      onPress={() => showPublishAlert(tutor.id, true)}
-                    >
-                      <Text style={styles.detailsButton}>
-                        {data.isPublish ? "Published" : "Publish"}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleHomeTutorPress(tutor.id)}
-                    >
-                      <Text style={styles.detailsButton}>View Details</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+        <View style={{ marginHorizontal: 14 }}>
+          <HomeTutorStatusTab
+            selectionMode={1}
+            option1="Approved"
+            option2="Review"
+            option3="Draft"
+            onSelectSwitch={onSelectSwitch}
+          />
+          <ScrollView>
+            <View style={{ marginTop: 10 }}>
+              {bookingTab === 1 && renderTutors(approvedTutors, 1)}
+              {bookingTab === 2 && renderTutors(reviewTutors, 2)}
+              {bookingTab === 3 && renderTutors(draftTutors, 3)}
+            </View>
+          </ScrollView>
+          <TouchableOpacity onPress={() => navigation.navigate('HomeTutor')}>
+            <View style={styles.newcard}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={[styles.text, { color: COLORS.primary, fontFamily: 'Poppins_Medium', fontSize: 14 }]}>
+                  Add New Class Listing
+                </Text>
+                <AntDesign name="plussquare" size={25} color={COLORS.primary} />
               </View>
-            );
-          })}
-        </ScrollView>
+              <Text style={styles.cardtext}>
+                Why limit your potential? Add more class timings and attract more clients! Earn More Money
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  newcard :{
+    marginHorizontal:5,
+ justifyContent:'center',
+ borderStyle:'dashed',
+ borderColor:COLORS.primary,
+ borderWidth:1,
+ borderRadius:10,
+ padding:13
+  },
+  deleteButton: {
+    marginLeft: 'auto', // Pushes the delete icon to the far right
+  },
+  editIcon: {
+    width: 18,
+    height: 18,
+    tintColor: COLORS.primary, // Adjust color as needed
+  },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
   },
   text: {
     fontFamily: "Poppins",
@@ -324,41 +376,70 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    marginHorizontal: 20,
     marginVertical: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    // marginHorizontal:12,
+    // elevation:2,
+    shadowColor: '#000',
+    shadowOffset: 1,
+    padding: 12,
+    borderColor: "#f7f2f2",
+    borderWidth: 1,
     backgroundColor: "#fff",
-    elevation: 5,
     borderRadius: 10,
   },
   leftContainer: {
-    marginRight: 10,
+    marginRight: 5,
   },
   rightContainer: {
     flex: 1,
-    paddingVertical: 5,
+    marginLeft: 8,
+    marginTop: 3,
+    justifyContent: 'space-between',
   },
   historyText: {
     fontSize: 18,
     fontFamily: "Poppins",
   },
+
+  cardtext :{
+  fontFamily:'Poppins',
+  color:'black',
+  fontSize:11,
+  flexWrap:'wrap',
+  width:250
+  },
   dateText: {
     fontSize: 14,
-    color: "#666",
+    color: COLORS.black,
     fontFamily: "PoppinsSemiBold",
   },
-  serviceText: {
-    fontSize: 14,
-    color: "#333",
-    fontFamily: "Poppins",
+  timeslot: {
+    fontFamily: 'Poppins',
+    backgroundColor: COLORS.light_orange,
+    color: COLORS.timeslottext,
+    fontSize: 10,
+    padding: 6,
+    borderRadius: 10
   },
+
+  price: {
+    fontFamily: 'Poppins',
+    backgroundColor: COLORS.lightgreen,
+    color: COLORS.pricetext,
+    fontSize: 10,
+    padding: 6,
+    borderRadius: 10
+  },
+
   detailsButton: {
     fontSize: 10,
-    color: "#5F33E1",
-    fontFamily: "Poppins",
-    marginTop: 10,
+    color: COLORS.white,
+    padding: 5,
+    borderRadius: 4,
+    marginRight: 8,
+    textAlign: 'center',
+    fontFamily: "Poppins_Medium",
+    backgroundColor: COLORS.primary
   },
   deleteButton: {
     fontSize: 14,
@@ -372,25 +453,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   tutorImage: {
-    width: 100,
-    height: 110,
+    width: 80,
+    height: 80,
     borderRadius: 10,
-  },
-  timeSlotContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    // backgroundColor: "rgba(0, 0, 0, 1)",
-    alignItems: "center",
-    paddingHorizontal: 5,
-    paddingVertical: 10,
-    // marginBottom: 5,
-  },
-  timeSlotText: {
-    fontFamily: "Poppins",
-    fontSize: 12,
-    backgroundColor: "#eeedfc",
-    borderRadius: 8,
-    padding: 5,
   },
   deleteButtonContainer: {
     position: "absolute",
@@ -404,24 +469,35 @@ const styles = StyleSheet.create({
   },
   text1: {
     fontFamily: "Poppins",
-    fontSize: 11,
-    lineHeight: 19,
-    fontWeight: "400",
-    color: "#fff",
-  },
-  tutorImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 6,
+    fontSize: 12,
+    // lineHeight: 19,
   },
   cardContainer1: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 10,
+    // marginHorizontal: 10,
     marginTop: 10,
     paddingHorizontal: 10,
     paddingVertical: 10,
     borderRadius: 10,
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+    marginVertical: 10,
+    shadowColor: '#000',
+    shadowOffset: 1,
+    borderColor: "#f7f2f2",
+    borderWidth: 1,
+  },
+  noDataText: {
+    fontFamily: "Poppins_Medium",
+    fontSize: 16,
+    color: COLORS.gray,
   },
 });
 

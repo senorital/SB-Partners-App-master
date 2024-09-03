@@ -1,43 +1,72 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
+import RNPickerSelect from "react-native-picker-select";
 
-const AddCustomData = ({ languages, setLanguages,label,isRequired=false }) => {
+const AddCustomData = ({ languages, setLanguages, label, isRequired = false }) => {
   const [inputVisible, setInputVisible] = useState(false);
-  const [inputValue, setInputValue] = useState("");
-  const inputRef = useRef(null);
+  const [selectedValue, setSelectedValue] = useState("");
 
-  const handleInputChange = (text) => {
-    setInputValue(text);
-  };
-
-  const handleInputConfirm = () => {
-    if (inputValue) {
-      setLanguages([...languages, inputValue]); // Add the new language to the list
+  const handleInputConfirm = (value) => {
+    if (value) {
+      setLanguages([...languages, value]);
     }
     setInputVisible(false);
-    setInputValue("");
+    setSelectedValue("");
   };
 
   const showInput = () => {
     setInputVisible(true);
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
   };
+
+  const indianLanguages = [
+    { label: 'Hindi', value: 'Hindi' },
+    { label: 'Bengali', value: 'Bengali' },
+    { label: 'Telugu', value: 'Telugu' },
+    { label: 'Marathi', value: 'Marathi' },
+    { label: 'Tamil', value: 'Tamil' },
+    { label: 'Urdu', value: 'Urdu' },
+    { label: 'Gujarati', value: 'Gujarati' },
+    { label: 'Kannada', value: 'Kannada' },
+    { label: 'Odia', value: 'Odia' },
+    { label: 'Malayalam', value: 'Malayalam' },
+    { label: 'Punjabi', value: 'Punjabi' },
+    { label: 'Assamese', value: 'Assamese' },
+    { label: 'Maithili', value: 'Maithili' },
+    { label: 'Bhili/Bhilodi', value: 'Bhili/Bhilodi' },
+    { label: 'Santali', value: 'Santali' },
+    { label: 'Kashmiri', value: 'Kashmiri' },
+    { label: 'Nepali', value: 'Nepali' },
+    { label: 'Gondi', value: 'Gondi' },
+    { label: 'Sindhi', value: 'Sindhi' },
+    { label: 'Konkani', value: 'Konkani' },
+    // Add more Indian languages if needed
+  ];
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}{isRequired && <Text style={{ color: 'red' }}> *</Text>}</Text>
+      <Text style={styles.label}>
+        {label}
+        {isRequired && <Text style={{ color: 'red' }}> *</Text>}
+      </Text>
       <View style={styles.languageContainer}>
         {inputVisible ? (
-          <TextInput
-            ref={inputRef}
-            style={styles.input}
-            value={inputValue}
-            onChangeText={handleInputChange}
-            onBlur={handleInputConfirm}
-            placeholder={label}
+          <RNPickerSelect
+            onValueChange={handleInputConfirm}
+            items={indianLanguages}
+            style={pickerSelectStyles}
+            placeholder={{
+              label: `Select ${label}`,
+              value: null,
+            }}
+            value={selectedValue}
+            useNativeAndroidPickerStyle={false}
+            textInputProps={{
+              style: styles.inputWithIcon,
+            }}
+            Icon={() => {
+              return <AntDesign name="plus" size={16} color="#333" style={styles.icon} />;
+            }}
           />
         ) : (
           <TouchableOpacity onPress={showInput} style={styles.tag}>
@@ -63,14 +92,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 5,
   },
-  input: {
-    flex: 1,
-    height: 48,
+  inputWithIcon: {
+    flexDirection: "row",
+    borderRadius: 12,
+    paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: "#ccc",
-    paddingHorizontal: 15,
-    borderRadius: 5,
-    marginRight: 10,
+    width:320,
+    padding:9,
+    fontFamily: "Poppins",
+    color: '#000',
+  },
+  icon: {
+    position: "absolute",
+    right: 10,
+    top: 14,
   },
   tag: {
     flexDirection: "row",
@@ -82,6 +117,27 @@ const styles = StyleSheet.create({
   },
   tagText: {
     marginLeft: 5,
+  },
+});
+
+const pickerSelectStyles = StyleSheet.create({
+  inputIOS: {
+    flex: 1,
+    height: 48,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    marginRight: 10,
+  },
+  inputAndroid: {
+    flex: 1,
+    height: 48,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    marginRight: 10,
   },
 });
 

@@ -70,6 +70,16 @@ import FirstYogaStudioScreen from "../yogaStudio/FirstYogaStudioScreen";
 import ComingSoonStudio from "../yogaStudio/ComingSoonStudio";
 import ComingSoonTherapist from "../therapist/ComingSoonTherapist";
 import ComingSoonInfluencer from "../influencer/ComingSoonInfluencer";
+import Register from "../register/Register";
+import DenyLocation from "../login/DenyLocation";
+import steps  from "../shareAndEarn/steps";
+import Share from "../shareAndEarn/share";
+import AadharVerification from "../AadharVerification/AadharVerification";
+import BankVerification from "../BankVerification/BankVerification";
+import UpdateBankVerification from "../BankVerification/UpdateBankVerification";
+import UpdateAadharVerification from "../AadharVerification/UpdateAadharVerification";
+import Referral from "../shareAndEarn/referral";
+import UpdateTLocation from "../tutorLocation/UpdateTLocation";
 // import TestStepSecond from "../yogaStudio/TestStepSecond";
 
 const Stack = createNativeStackNavigator();
@@ -124,7 +134,7 @@ export default function Main() {
 
 const MainStack = ({ navigation, route }) => {
   const { isLoggedIn, isFirstTimeLoad } = route.params;
-
+  console.log("isFirstTimeLoad : "+ isFirstTimeLoad)
   useEffect(() => {
     if (!isLoggedIn) {
       navigation.navigate("authStack");
@@ -169,16 +179,40 @@ const MainStack = ({ navigation, route }) => {
 const AuthStack = () => {
   return (
     <Stack.Navigator>
+  
       <Stack.Screen
         name="Login"
         component={Login}
         options={{ headerShown: false }}
       />
       <Stack.Screen
+        name="DenyLocation"
+        component={DenyLocation}
+        options={{ headerShown: false }}
+      /> 
+      <Stack.Screen
         name="Otp"
         component={Otp}
         options={{ headerShown: false }}
       />
+       <Stack.Screen
+        name="Register"
+        component={Register}
+        options={{ headerShown: false }}
+      />
+        <Stack.Screen
+        name="TermConditions"
+        component={TermConditions}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PrivacyPolicy"
+        component={PrivacyPolicy}
+        options={{ headerShown: false }}
+      />
+     
+    
+     
     </Stack.Navigator>
   );
 };
@@ -276,6 +310,16 @@ const AppStack = () => {
       <Stack.Screen
         name="EditProfile"
         component={EditProfile}
+        options={{ headerShown: false }}
+      />
+          <Stack.Screen
+        name="Steps"
+        component={steps}
+        options={{ headerShown: false }}
+      />
+         <Stack.Screen
+        name="Share"
+        component={Share}
         options={{ headerShown: false }}
       />
       <Stack.Screen
@@ -489,6 +533,37 @@ const AppStack = () => {
           <Stack.Screen
         name="ComingSoonInfluencer"
         component={ComingSoonInfluencer}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="AadharVerification"
+        component={AadharVerification}
+        options={{ headerShown: false }}
+      />
+   
+     <Stack.Screen
+        name="BankVerification"
+        component={BankVerification}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="UpdateBankVerification"
+        component={UpdateBankVerification}
+        options={{ headerShown: false }}
+      />
+       <Stack.Screen
+        name="UpdateAadharVerification"
+        component={UpdateAadharVerification}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Referral"
+        component={Referral}
+        options={{ headerShown: false }}
+      />
+       <Stack.Screen
+        name="UpdateTLocation"
+        component={UpdateTLocation}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

@@ -41,7 +41,7 @@ const QualificationDetails = ({ navigation,route }) => {
   // console.log(id)
 
   const handlePress = (qualificationId) => {
-    navigation.navigate("EditQualification", { id: qualificationId });
+    navigation.navigate("         ", { id: qualificationId });
   };
 
   const handleDelete = (id) => {

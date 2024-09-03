@@ -24,10 +24,11 @@ import Button from "../button/Button";
 import { addTutorLocation } from "../../action/homeTutor/homeTutor";
 
 import { useDispatch } from "react-redux";
+import { COLORS } from "../constants";
 
 const defaultLocation = {
-  latitude: 37.7749,
-  longitude: -122.4194,
+  latitude: 28.6139, // Latitude for New Delhi
+  longitude: 77.2090, // Longitude for New Delhi
   latitudeDelta: 0.05,
   longitudeDelta: 0.05,
 };
@@ -106,7 +107,7 @@ const AddTLocation = ({ navigation, route }) => {
   }) => (
     <View style={styles.stepContainer}>
       <View style={styles.autocompleteContainer}>
-        <Text style={styles.label}>Service area</Text>
+        <Text style={styles.label}>Enter Service area Location</Text>
         <GooglePlacesAutocomplete
           placeholder="Search by location"
           onPress={handleLocationSelect}
@@ -195,9 +196,9 @@ const AddTLocation = ({ navigation, route }) => {
       behavior={Platform.OS === "ios" ? "padding" : null}
       style={styles.container}
     >
-      <StatusBar translucent backgroundColor="transparent" />
+      <StatusBar backgroundColor={COLORS.primary} style="light" />
       <View style={{ paddingTop: 15 }}>
-        <Header title={"Home Tutor"} icon={require("../../assets/back.png")} />
+        <Header title={"Add Service Area Location"} icon={require("../../assets/back.png")} />
       </View>
 
       <>
@@ -205,6 +206,27 @@ const AddTLocation = ({ navigation, route }) => {
         <Formik
          initialValues={{}}
           onSubmit={(values, { setSubmitting }) => {
+            if (!name) {
+              Toast.show({
+                type: "error",
+                text1: "Service area is required",
+                visibilityTime: 2000,
+                autoHide: true,
+              });
+              setSubmitting(false);
+              return;
+            }
+        
+            if (!radius) {
+              Toast.show({
+                type: "error",
+                text1: "Distance is required",
+                visibilityTime: 2000,
+                autoHide: true,
+              });
+              setSubmitting(false);
+              return;
+            }
             const locationData = {
               id: id,
               latitude: String(location.latitude),
@@ -225,7 +247,7 @@ const AddTLocation = ({ navigation, route }) => {
                 });
 
                 setSubmitting(false);
-                navigation.navigate("Home");
+                navigation.goBack();
               })
               .catch((error) => {
                 console.error("Error adding tutor location:", error);

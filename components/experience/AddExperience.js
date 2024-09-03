@@ -17,6 +17,7 @@ import Button from "../button/Button";
 import AddCustomData from "../addCustomdata/AddCustomData";
 import { addExperience } from "../../action/experience/experience";
 import { useDispatch } from "react-redux";
+import { COLORS } from "../constants";
 
 const AddExperience = ({ navigation }) => {
   const dispatch=useDispatch();
@@ -85,10 +86,6 @@ const AddExperience = ({ navigation }) => {
         isValid = false;
       }
 
-      if (skills.length === 0) {
-        handleError("Please add at least one skill", "skills");
-        isValid = false;
-      }
 
 
       if (!isValid) return false;
@@ -150,8 +147,8 @@ const AddExperience = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-        <StatusBar translucent backgroundColor="transparent" />
-     <View style={{paddingTop:20}}>
+      <StatusBar backgroundColor={COLORS.primary} style="light" />
+      <View style={{paddingTop:20}}>
       <Header
         title={"Add Experience"}
         icon={require("../../assets/back.png")}
@@ -220,16 +217,16 @@ const AddExperience = ({ navigation }) => {
             isRequired={true}
           />
           </View>
-            <AddCustomData languages={skills} setLanguages={setSkills} label={"Skills"} isRequired={true} />
+            {/* <AddCustomData languages={skills} setLanguages={setSkills} label={"Skills"} isRequired={true} />
           {/* Display the list of languages */}
-          <View style={styles.languageList}>
+          {/* <View style={styles.languageList}>
             {skills.map((skill, index) => (
               <View key={index} style={styles.languageItem}>
                 <Text>{skill}</Text>
               </View>
             ))}
             {errors.skills && <Text style={styles.errorText}>{errors.skills}</Text>}
-          </View>
+          </View> */} 
         </View>
         <Button     title={
             loading ? (

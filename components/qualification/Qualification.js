@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   StatusBar,
   ActivityIndicator,
-  BackHandler
+  BackHandler,Alert
 } from "react-native";
+import Toast from "react-native-toast-message";
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -16,28 +17,73 @@ import {
 import CustomHeader from "../CustomHeader/CustomHeader";
 import { useDispatch } from "react-redux";
 import { getInstructor } from "../../action/auth/auth";
+import { COLORS, icons } from "../constants";
+import { useFocusEffect } from '@react-navigation/native';
+import { ScrollView } from "react-native-gesture-handler";
+import { deleteQualification } from "../../action/qualification/qualification";
 
 const Qualification = ({ navigation }) => {
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const res = await dispatch(getInstructor());
-        console.log(res);
-        setData(res.data.qualifications);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchData();
-  }, [dispatch]);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const res = await dispatch(getInstructor());
+      console.log(res);
+      setData(res.data.instructor.qualifications);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
   const handleQualificationPress = (qualificationId) => {
     navigation.navigate("QualificationDetails", { id: qualificationId });
   };
+
+  const handleDeletePress = async (qualificationId) => {
+    try {
+      const res = await dispatch(deleteQualification(qualificationId));
+      console.log(res);
+      if (res.success) {
+        Toast.show({
+          type: "success",
+          text1: res.message,
+          visibilityTime: 2000,
+          autoHide: true,
+        });
+        fetchData();
+      }
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      const msg = error.response.data.message;
+      Toast.show({
+        type: "error",
+        text1: msg || "An error occurred. Please try again.",
+        visibilityTime: 2000,
+        autoHide: true,
+      });
+    }
+  };
+
+  const handleEditPress = (qualificationId) => {
+    // Add logic for edit action here
+    navigation.navigate("EditQualification", { id: qualificationId });
+
+    console.log("Edit qualification with ID:", qualificationId);
+  };
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchData();
+    }, [])
+  );
+
+  useEffect(() => {
+    fetchData();
+  }, [dispatch]);
   
   useEffect(() => {
     const handleBackPress = () => {
@@ -55,17 +101,39 @@ const Qualification = ({ navigation }) => {
       BackHandler.removeEventListener("hardwareBackPress", handleBackPress);
     };
   }, [navigation]);
+
+
+  const showAlert = (id) => {
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete this item?",
+      [
+        {
+          text: "Cancel",
+          onPress: () => console.log("Cancel Pressed"),
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          onPress: () => handleDeletePress(id),
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" />
+      <StatusBar backgroundColor={COLORS.primary} style="light" />
       <View style={{ paddingTop: 20 }}>
         <CustomHeader
           title="Qualification"
-          icon={require("../../assets/back.png")}
+          icon={icons.back}
           buttonText="Add New"
           destination="AddQualification"
         />
       </View>
+      <ScrollView>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0000ff" />
@@ -76,19 +144,32 @@ const Qualification = ({ navigation }) => {
             <TouchableOpacity
               key={cls.id}
               style={styles.cardContainer}
-              onPress={() => handleQualificationPress(cls.id)}
+              // onPress={() => handleQualificationPress(cls.id)}
             >
-              <View style={styles.rightContainer}>
-                <Text style={styles.historyText}>{cls.course}</Text>
-                <Text style={styles.dateText}>
-                  {cls.university_institute_name}
-                </Text>
-                <View>
+              {/* <View style={{flexDirection:'row',justifyContent:'space-between'}}> */}
+              <View style={[styles.rightContainer,{flexDirection:'row',justifyContent:'space-between'}]}>
+                <View style={styles.textContainer}>
+                  <Text style={styles.historyText}>{cls.course}</Text>
+                  <Text style={styles.dateText}>{cls.institute_collage + `(` + cls.university_name + `)`}</Text>
                   <View style={styles.dateTimeContainer}>
                     <Text style={styles.dateText}>{cls.year}</Text>
                   </View>
                 </View>
+                <TouchableOpacity onPress={() => handleEditPress(cls.id)} style={styles.editButton}>
+                  <Image
+                    style={styles.editIcon}
+                    source={require("../../assets/edit.png")} 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity   onPress={() => showAlert(cls.id)}
+              style={styles.editButton}>
+                  <Image
+                    style={styles.editIcon}
+                    source={require("../../assets/delete.png")} 
+                  />
+                </TouchableOpacity>
               </View>
+              {/* </View> */}
             </TouchableOpacity>
           ))}
         </>
@@ -114,6 +195,7 @@ const Qualification = ({ navigation }) => {
           </View>
         </View>
       )}
+      </ScrollView>
     </View>
   );
 };
@@ -147,31 +229,47 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     elevation: 5,
     borderRadius: 10,
+    position: "relative", // Make sure card is positioned relative to place the edit icon absolutely
   },
 
   rightContainer: {
+    flexDirection: 'row',
+    // alignItems: 'center',
+    justifyContent: 'space-between',
+    // flex: 1,
+  },
+
+  textContainer: {
     flex: 1,
-    // padding: 10,
   },
 
   historyText: {
     fontSize: 14,
-    fontFamily: "Poppins",
+    fontFamily: "Poppins_Medium",
   },
   dateTimeContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 5,
+    marginTop: 2,
   },
   dateText: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 12,
+    color: COLORS.grey,
     fontFamily: "Poppins",
   },
-    loadingContainer: {
+  loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  editButton: {
+    // padding: 10,
+  marginLeft:12
+  },
+  editIcon: {
+    width: 18,
+    height: 18,
+    tintColor: COLORS.primary, // Adjust color as needed
   },
 });
 

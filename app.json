@@ -1,47 +1,41 @@
 {
   "expo": {
-    "name": "sb-partners",
+    "name": "SB-Partners",
     "slug": "sb-partners",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/swasti_bharat.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-       "jsEngine": "hermes",
-       "config": {
+      "jsEngine": "hermes",
+      "config": {
         "googleMapsApiKey": "AIzaSyBEgcdRIgr7znHQLhi3WKlJMIsjsoD5xnA"
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "versionCode":3,
+      "permissions"  : ["RECEIVE_SMS", "READ_SMS"],
+      "versionCode": 6,
       "package": "com.swastibharat.partners",
-       "jsEngine": "hermes",
-       "config": {
+      "jsEngine": "hermes",
+      "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBEgcdRIgr7znHQLhi3WKlJMIsjsoD5xnA"
         }
       }
-
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "extra": {
       "eas": {
-        "projectId": "12ab3263-1fec-4e7b-af8a-5ecb67150b50"
+        "projectId": "02696d66-4abe-4ef5-90a2-ff3059d21131"
       }
     },
     "plugins": [

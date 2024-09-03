@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Text, View, StyleSheet, StatusBar, Image, BackHandler } from "react-native";
 import Header from "../header/Header";
+import { COLORS } from "../constants";
 
 const ComingSoonStudio = ({ navigation }) => {
   useEffect(() => {
@@ -21,7 +22,7 @@ const ComingSoonStudio = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" />
+      <StatusBar backgroundColor={COLORS.primary} style="light" />
       <View style={{ paddingTop: 20 }}>
         <Header title={"Yoga Studio"} icon={require("../../assets/back.png")} />
       </View>

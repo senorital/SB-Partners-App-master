@@ -14,30 +14,39 @@ import Toast from "react-native-toast-message";
 import Header from "../header/Header";
 import { getInstructor } from "../../action/auth/auth";
 import { useDispatch,useSelector } from "react-redux";
+import Border from "../border/BorderRadius";
+import { COLORS, icons } from "../constants";
+import { FONTS } from "../constants/theme";
+import { useFocusEffect } from '@react-navigation/native';
 
 const MainProfile = ({ navigation }) => {
   const dispatch=useDispatch();
   const user =useSelector((state)=>state.auth.user);
+  const fetchData = async () => {
+    try {
+    const res=  await dispatch(getInstructor());
+    console.log(res);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      const msg=error.response?.data.message
+      Toast.show({
+        type: "error",
+        text1: msg || "An error occurred. Please try again.",
+        visibilityTime: 2000,
+        autoHide: true,
+      });
+    }
+  };
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-      const res=  await dispatch(getInstructor());
-      console.log(res);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        const msg=error.response?.data.message
-        Toast.show({
-          type: "error",
-          text1: msg || "An error occurred. Please try again.",
-          visibilityTime: 2000,
-          autoHide: true,
-        });
-      }
-    };
 
     fetchData();
   }, [dispatch]);
-
+  
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchData();
+    }, [])
+  );
   useEffect(() => {
     const handleBackPress = () => {
       if (navigation.isFocused()) {
@@ -56,62 +65,46 @@ const MainProfile = ({ navigation }) => {
   }, [navigation]);
 
 
-  const imageUrl = user.data.imagePath
-  ? { uri: user.data.imagePath }
+  const imageUrl = user.instructor.imagePath
+  ? { uri: user.instructor.imagePath }
   : require("../../assets/dAvatar.jpg");
 
 
   return (
     <View style={styles.container}>
-     <StatusBar translucent backgroundColor="transparent" />
-     <View style={{paddingTop:20}}>
-      <Header title={"My Profile"} icon={require("../../assets/back.png")} />
+     <StatusBar backgroundColor={COLORS.primary} style="light" />
+        <View style={{paddingTop:20}}>
+      <Header title={"My Profile"} icon={icons.back} />
       </View>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 ,marginVetical:20 }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 ,marginVetical:20}}>
         <View style={{ flex: 1 }}>
-          <View style={{ marginHorizontal: 20, flexDirection: "row",marginBottom:15 }}>
-            <Avatar
-              rounded
-              source={imageUrl}
-              size={75}
-            />
-            <View style={{ marginLeft: 20 }}>
-              <Text style={{ fontFamily: "PoppinsSemiBold", fontSize: 16 }}>
-                {user && <>{user.data.name}</>}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontFamily: "Poppins",
-                  color: "gray",
-                  marginTop: 3,
-                }}
-              >
-                  {user && <>{user.data.email}</>}
-              </Text>
+        <View style={{}}>
+            <View style={styles.profileContainer}>
+              <Avatar rounded source={imageUrl} size={75} />
+              <View style={styles.profileTextContainer}>
+
+                <Text style={styles.profileName}>
+                  {user && <>{user.instructor?.name}</>}
+                </Text>
+                <Text style={styles.profileEmail}>
+                  {user && <>{user.instructor?.email}</>}
+                </Text>
+              </View>
+            </View>      
+            <Border color={COLORS.primary} />
             </View>
-          </View>
+            <View style={styles.contentcontainer}>
 
           <TouchableOpacity
             onPress={() => navigation.navigate("ProfileOverview")}
           >
             <View style={styles.viewContainer}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Image
-                  style={styles.image}
-                  source={require("../../assets/profile-icon/mydetails.png")}
-                />
+              <View>
                 <Text style={styles.textContainer}>My Details</Text>
+                <Text style={styles.subtext}>In few clicks, Update your Details</Text>
+
               </View>
-              <Image
-                style={styles.image}
-                source={require("../../assets/profile-icon/arrow-right.png")}
-              />
+              <Image style={styles.image} source={icons.arrow_right} />
             </View>
           </TouchableOpacity>
 
@@ -120,22 +113,12 @@ const MainProfile = ({ navigation }) => {
           onPress={() => navigation.navigate("Qualification")}
           >
             <View style={styles.viewContainer}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Image
-                  style={styles.image}
-                  source={require("../../assets/profile-icon/qualification.png")}
-                />
+              <View>
                 <Text style={styles.textContainer}>Qualification</Text>
+                <Text style={styles.subtext}>Add or Update your qualification</Text>
+
               </View>
-              <Image
-                style={styles.image}
-                source={require("../../assets/profile-icon/arrow-right.png")}
-              />
+              <Image style={styles.image} source={icons.arrow_right} />
             </View>
           </TouchableOpacity>
           <View style={styles.hr} />
@@ -143,25 +126,16 @@ const MainProfile = ({ navigation }) => {
           onPress={() => navigation.navigate("Experience")}
           >
             <View style={styles.viewContainer}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Image
-                  style={styles.image}
-                  source={require("../../assets/profile-icon/experience.png")}
-                />
+              <View>
                 <Text style={styles.textContainer}>Experience</Text>
+                <Text style={styles.subtext}>Add or Update your Experience</Text>
+
               </View>
-              <Image
-                style={styles.image}
-                source={require("../../assets/profile-icon/arrow-right.png")}
-              />
+              <Image style={styles.image} source={icons.arrow_right} />
             </View>
           </TouchableOpacity>
           <View style={styles.hr} />
+        </View>
         </View>
       </ScrollView>
     </View>
@@ -169,9 +143,40 @@ const MainProfile = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  contentcontainer : {
+    justifyContent:'center',
+    marginTop:40,
+    backgroundColor:COLORS.white,
+    marginHorizontal:20,
+    borderRadius:12
+  },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor:COLORS.background
+    },
+  profileContainer: {
+    marginHorizontal: 20,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    flexDirection: 'row',
+    alignItems: 'center', // Ensure the items are centered vertically
+    position: 'relative', // Add position relative
+  },
+  profileTextContainer: {
+    marginLeft: 20,
+  },
+  profileName: {
+   ...FONTS.h3,
+    color: '#fff',
+  },
+  profileEmail: {
+   ...FONTS.h5,
+    color: COLORS.white,
+  },
+  subtext :{
+  ...FONTS.h5 
+ 
   },
   hr: {
     position: "relative",
@@ -185,21 +190,25 @@ const styles = StyleSheet.create({
   viewContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    height: 45,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    // marginVertical: 10,
+    height: 70,
+    paddingHorizontal: 0,
+    paddingVertical: 15,
+  
+    marginHorizontal: 20,
   },
   textContainer: {
-    fontSize: 16,
-    fontWeight: "200",
-    fontFamily: "Poppins",
-    paddingHorizontal: 20,
+    marginTop: 3,
+    fontFamily: "Poppins_Medium",
+    color: "black",
+    fontSize:15
   },
   image: {
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
+    marginTop:10
   },
+
+ 
 });
 
 export default MainProfile;
